@@ -647,6 +647,18 @@ input[type=range]::-moz-range-thumb {
   font-size: 12px; font-weight: 900;
   cursor: pointer; z-index: 30;
 }
+.leader-handle {
+  position: absolute;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 2.5px solid #fff;
+  cursor: grab;
+  transform: translate(-50%,-50%);
+  z-index: 22;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.55);
+  touch-action: none;
+}
+.leader-handle:active { cursor: grabbing; }
 
 /* ===== PROP PANEL ===== */
 .prop-panel {
@@ -1238,6 +1250,7 @@ input[type=range]::-moz-range-thumb {
   <div id="editor-scroll">
     <div id="editor-canvas-wrap">
       <img id="editor-img" alt="">
+      <svg id="leader-svg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;"></svg>
       <div id="marker-layer"></div>
     </div>
   </div>
@@ -1660,6 +1673,17 @@ function renderMarkers(){
       const ck=document.createElement('input'); ck.type='checkbox'; ck.checked=showLbl; ck.onchange=()=>{mk.showLabel=ck.checked;autoSave();renderMarkers();};
       const lt=document.createElement('span'); lt.textContent='番号を表示する';
       lr.appendChild(ck); lr.appendChild(lt); panel.appendChild(lr);
+      // 引き出し線トグル
+      const ll=document.createElement('div'); ll.className='prop-row';
+      const lck=document.createElement('input'); lck.type='checkbox'; lck.checked=!!mk.leader;
+      lck.onchange=()=>{
+        pushUndo();
+        if(lck.checked){ mk.leader={x:mk.x+80/sX, y:mk.y-60/sY}; }
+        else { mk.leader=null; }
+        autoSave(); renderMarkers();
+      };
+      const llt=document.createElement('span'); llt.textContent='引き出し線';
+      ll.appendChild(lck); ll.appendChild(llt); panel.appendChild(ll);
       $('marker-layer').appendChild(panel);
       // クランプ: パネルが画像レイヤー外にはみ出さないよう位置補正
       const pw=panel.offsetWidth||214, lw=$('marker-layer').offsetWidth;
@@ -1667,6 +1691,65 @@ function renderMarkers(){
       cl=Math.max(4, Math.min(cl, lw-pw-4));
       panel.style.left=cl+'px';
     }
+    // 引き出し線ハンドル
+    if(mk.leader){
+      const handle=document.createElement('div'); handle.className='leader-handle';
+      handle.style.left=(mk.leader.x*sX)+'px'; handle.style.top=(mk.leader.y*sY)+'px';
+      handle.style.background=mk.color;
+      handle.addEventListener('pointerdown',e=>{
+        e.stopPropagation(); handle.setPointerCapture(e.pointerId);
+        pushUndo();
+        handle._ds={x:e.clientX,y:e.clientY,ox:mk.leader.x,oy:mk.leader.y};
+      });
+      handle.addEventListener('pointermove',e=>{
+        if(!handle._ds) return;
+        const ddx=e.clientX-handle._ds.x, ddy=e.clientY-handle._ds.y;
+        const p2=photos.find(p=>p.id===currentPhotoId);
+        const m2=p2&&p2.markers.find(m=>m.id===mk.id);
+        if(m2&&m2.leader){ m2.leader.x=handle._ds.ox+ddx/sX; m2.leader.y=handle._ds.oy+ddy/sY; }
+        handle.style.left=((handle._ds.ox+ddx/sX)*sX)+'px';
+        handle.style.top=((handle._ds.oy+ddy/sY)*sY)+'px';
+        renderLeaderLines();
+      });
+      handle.addEventListener('pointerup',e=>{ if(!handle._ds) return; handle._ds=null; renderMarkers(); });
+      $('marker-layer').appendChild(handle);
+    }
+  });
+  renderLeaderLines();
+}
+
+function renderLeaderLines(){
+  const svg=$('leader-svg'); if(!svg) return;
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const photo=photos.find(p=>p.id===currentPhotoId); if(!photo) return;
+  const imgEl=$('editor-img');
+  const dW=imgEl.offsetWidth||imgEl.getBoundingClientRect().width;
+  const dH=imgEl.offsetHeight||imgEl.getBoundingClientRect().height;
+  const sX=imgNaturalW>0?dW/imgNaturalW:1, sY=imgNaturalH>0?dH/imgNaturalH:1;
+  const base=Math.min(dW,dH);
+  const NS='http://www.w3.org/2000/svg';
+  photo.markers.forEach(mk=>{
+    if(!mk.leader) return;
+    const sp=Math.max(16,((mk.size??50)/100)*base*0.14);
+    const op=(mk.opacity??100)/100;
+    const mx=mk.x*sX, my=mk.y*sY;
+    const lx=mk.leader.x*sX, ly=mk.leader.y*sY;
+    const dx=lx-mx, dy=ly-my, len=Math.sqrt(dx*dx+dy*dy);
+    if(len<2) return;
+    const ux=dx/len, uy=dy/len, px2=-uy, py2=ux;
+    const ah=Math.max(8,sp*0.5), aw=Math.max(4,sp*0.25);
+    const sx2=mx+ux*(sp/2+2), sy2=my+uy*(sp/2+2);
+    const ex=lx-ux*ah, ey=ly-uy*ah;
+    const line=document.createElementNS(NS,'line');
+    line.setAttribute('x1',sx2); line.setAttribute('y1',sy2);
+    line.setAttribute('x2',ex);  line.setAttribute('y2',ey);
+    line.setAttribute('stroke',mk.color); line.setAttribute('stroke-width',Math.max(2,sp*0.07).toFixed(1));
+    line.setAttribute('stroke-linecap','round'); line.setAttribute('opacity',op);
+    svg.appendChild(line);
+    const poly=document.createElementNS(NS,'polygon');
+    poly.setAttribute('points',lx+','+ly+' '+(ex-px2*aw)+','+(ey-py2*aw)+' '+(ex+px2*aw)+','+(ey+py2*aw));
+    poly.setAttribute('fill',mk.color); poly.setAttribute('opacity',op);
+    svg.appendChild(poly);
   });
 }
 
@@ -1700,6 +1783,24 @@ function renderToCanvas(photo){
       const base=Math.min(img.naturalWidth,img.naturalHeight);
       photo.markers.forEach(mk=>{
         const ms=Math.max(16,((mk.size??50)/100)*base*0.14), op=(mk.opacity??100)/100, showLbl=mk.showLabel!==false;
+        // 引き出し線を先に描画（マーカーが上に重なる）
+        if(mk.leader){
+          const lx=mk.leader.x, ly=mk.leader.y;
+          const ddx=lx-mk.x, ddy=ly-mk.y, len=Math.sqrt(ddx*ddx+ddy*ddy);
+          if(len>2){
+            const ux=ddx/len, uy=ddy/len, px2=-uy, py2=ux;
+            const ah=Math.max(16,ms*0.5), aw=Math.max(8,ms*0.25), lw=Math.max(2,ms*0.07);
+            const sx2=mk.x+ux*(ms/2+2), sy2=mk.y+uy*(ms/2+2);
+            const ex=lx-ux*ah, ey=ly-uy*ah;
+            ctx.save(); ctx.globalAlpha=op;
+            ctx.strokeStyle=mk.color; ctx.lineWidth=lw; ctx.lineCap='round';
+            ctx.beginPath(); ctx.moveTo(sx2,sy2); ctx.lineTo(ex,ey); ctx.stroke();
+            ctx.fillStyle=mk.color;
+            ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(ex-px2*aw,ey-py2*aw); ctx.lineTo(ex+px2*aw,ey+py2*aw);
+            ctx.closePath(); ctx.fill();
+            ctx.restore();
+          }
+        }
         ctx.save(); ctx.globalAlpha=op;
         ctx.beginPath(); ctx.arc(mk.x,mk.y,ms/2,0,Math.PI*2); ctx.fillStyle=mk.color; ctx.fill();
         ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=ms*0.07; ctx.stroke();
