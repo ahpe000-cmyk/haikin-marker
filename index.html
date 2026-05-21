@@ -1605,8 +1605,9 @@ function renderMarkers(){
   const photo=photos.find(p=>p.id===currentPhotoId); if(!photo) return;
   $('marker-layer').innerHTML='';
   $('marker-count-badge').innerHTML='マーカー: <span class="cn">'+photo.markers.length+'</span>個';
-  const rect=$('editor-img').getBoundingClientRect();
-  const dW=rect.width||$('editor-img').offsetWidth, dH=rect.height||$('editor-img').offsetHeight;
+  const imgEl=$('editor-img');
+  const dW=imgEl.offsetWidth||imgEl.getBoundingClientRect().width;
+  const dH=imgEl.offsetHeight||imgEl.getBoundingClientRect().height;
   const sX=imgNaturalW>0?dW/imgNaturalW:1, sY=imgNaturalH>0?dH/imgNaturalH:1;
   const base=Math.min(dW,dH);
 
@@ -1638,8 +1639,9 @@ function renderMarkers(){
       if(!isDragging) return;
       mk.x=Math.max(0,Math.min(imgNaturalW,dragMkStartX+dx*(imgNaturalW/dragImgRect.width)));
       mk.y=Math.max(0,Math.min(imgNaturalH,dragMkStartY+dy*(imgNaturalH/dragImgRect.height)));
-      dot.style.left=(mk.x*(dragImgRect.width/imgNaturalW))+'px';
-      dot.style.top=(mk.y*(dragImgRect.height/imgNaturalH))+'px';
+      const imgEl2=$('editor-img');
+      dot.style.left=(mk.x*(imgEl2.offsetWidth/imgNaturalW))+'px';
+      dot.style.top=(mk.y*(imgEl2.offsetHeight/imgNaturalH))+'px';
     });
     dot.addEventListener('pointerup',e=>{ if(draggingMkId!==mk.id) return; draggingMkId=null; dot.style.cursor='grab'; if(isDragging){ isDragging=false; renderMarkers(); autoSave(); } });
 
