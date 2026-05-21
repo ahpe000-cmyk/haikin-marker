@@ -4,159 +4,1154 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>配筋マーカー</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
+/* ===== TOKENS ===== */
+:root {
+  --bg:        #0C1018;
+  --surface:   #141A26;
+  --elevated:  #1A2134;
+  --hover:     #212840;
+  --border:    #263047;
+  --border2:   #364060;
+  --orange:    #FF6B00;
+  --orange-d:  #D95A00;
+  --orange-t:  rgba(255,107,0,0.10);
+  --orange-t2: rgba(255,107,0,0.18);
+  --dbx:       #0061FE;
+  --dbx-t:     rgba(0,97,254,0.12);
+  --success:   #22C55E;
+  --danger:    #EF4444;
+  --text:      #E8EDF8;
+  --text2:     #7B8AA4;
+  --text3:     #3E4D66;
+  --r-s:  6px;
+  --r-m:  10px;
+  --r-l:  14px;
+  --r-xl: 20px;
+  --r-f:  999px;
+  --sh-m: 0 4px 20px rgba(0,0,0,0.45);
+  --sh-l: 0 8px 36px rgba(0,0,0,0.6);
+}
+
+/* ===== RESET ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; font-family: 'DM Mono', monospace; background: #0F1117; color: #fff; overflow: hidden; }
+html, body {
+  height: 100%;
+  font-family: 'Space Grotesk', 'Noto Sans JP', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
 body { display: flex; flex-direction: column; }
-button { cursor: pointer; font-family: 'DM Mono', monospace; border: none; transition: opacity 0.15s; }
-button:hover { opacity: 0.82; } button:active { opacity: 0.65; }
-input, select { font-family: 'DM Mono', monospace; }
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #161820; }
-::-webkit-scrollbar-thumb { background: #2A2D35; border-radius: 3px; }
-#header { display:flex; align-items:center; gap:10px; padding:10px 14px; background:#161820; border-bottom:1px solid #2A2D35; flex-shrink:0; flex-wrap:wrap; }
-.logo-title { font-size:17px; font-weight:700; letter-spacing:-0.5px; }
-.logo-title span { color:#FF6B00; }
-.logo-sub { font-size:9px; color:#444; letter-spacing:0.1em; margin-top:1px; }
-#header-actions { display:flex; align-items:center; gap:8px; margin-left:auto; flex-wrap:wrap; }
-#dbx-badge { display:flex; align-items:center; gap:6px; padding:5px 11px; border-radius:20px; background:#1E2130; border:1px solid #2A2D35; font-size:11px; color:#555; cursor:pointer; white-space:nowrap; transition:background 0.15s,border-color 0.15s; }
-#dbx-badge.connected { background:#0D2235; border-color:#0061FE; color:#4DA3FF; }
-#dbx-badge .dbx-dot { width:7px; height:7px; border-radius:50%; background:#444; transition:background 0.15s; }
-#dbx-badge.connected .dbx-dot { background:#0061FE; }
-.btn { padding:7px 13px; border-radius:7px; font-size:12px; font-weight:700; white-space:nowrap; }
-.btn-primary   { background:#FF6B00; color:#fff; }
-.btn-secondary { background:#2A2D35; color:#C8CADC; }
-.btn-dbx       { background:#0061FE; color:#fff; }
-.btn:disabled  { opacity:0.4; cursor:not-allowed; }
-#view-upload, #view-gallery, #view-editor { flex:1; overflow:hidden; display:none; flex-direction:column; }
-#view-upload.active, #view-gallery.active, #view-editor.active { display:flex; }
-#setup-notice { background:#0A1A30; border:1px solid #0061FE; border-radius:10px; margin:12px; padding:14px 16px; font-size:11px; color:#4DA3FF; line-height:1.8; flex-shrink:0; }
-#setup-notice b { color:#fff; }
-#setup-notice code { background:#0F2040; padding:1px 6px; border-radius:3px; font-size:11px; }
-#setup-notice.hidden { display:none; }
-#drop-zone { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; cursor:pointer; padding:32px; user-select:none; }
-.upload-icon { width:96px; height:96px; border-radius:24px; background:linear-gradient(135deg,#FF6B00,#FF8C00); display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 8px 32px rgba(255,107,0,0.3); }
-.upload-title { font-size:18px; font-weight:700; text-align:center; margin-bottom:6px; }
-.upload-sub { font-size:12px; color:#555; text-align:center; }
-.drop-hint { border:2px dashed #2A2D35; border-radius:16px; padding:20px 40px; color:#3A3D4A; font-size:12px; }
-#drop-zone.drag-over { background:rgba(255,107,0,0.07); }
-#stats-bar { display:flex; gap:14px; padding:7px 14px; align-items:center; background:#161820; border-bottom:1px solid #1E2130; font-size:11px; color:#555; flex-shrink:0; flex-wrap:wrap; }
-#stats-bar .accent { color:#FF6B00; }
-#stats-bar .hint   { margin-left:auto; color:#333; }
-#gallery-scroll { flex:1; overflow-y:auto; }
-#gallery-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; padding:14px; }
-.photo-card { border-radius:10px; border:2px solid #2A2D35; background:#161820; position:relative; transition:border 0.15s,box-shadow 0.15s; }
-.photo-card.selected { border-color:#FF6B00; box-shadow:0 0 0 2px #FF6B00; }
-.card-checkbox { position:absolute; top:8px; left:8px; z-index:5; width:22px; height:22px; border-radius:6px; background:rgba(0,0,0,0.6); border:2px solid #8B8FA8; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#fff; font-size:13px; font-weight:900; }
-.card-checkbox.checked { background:#FF6B00; border-color:#FF6B00; }
-.card-del { position:absolute; top:8px; right:8px; z-index:5; width:22px; height:22px; border-radius:50%; background:rgba(255,23,68,0.85); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:15px; font-weight:900; line-height:1; }
-.card-thumb { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; cursor:pointer; border-radius:8px 8px 0 0; }
-.card-info  { padding:7px 10px; }
-.card-name    { color:#C8CADC; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.card-markers { color:#FF6B00; font-size:11px; margin-top:2px; }
-.card-edit-btn { width:calc(100% - 16px); margin:4px 8px 8px; display:block; text-align:center; }
-#gallery-actions { display:flex; gap:8px; padding:8px 14px; background:#161820; border-bottom:1px solid #2A2D35; flex-shrink:0; flex-wrap:wrap; align-items:center; }
-#gallery-actions.hidden { display:none; }
-#gallery-actions span { font-size:12px; color:#8B8FA8; }
-#editor-topbar { display:flex; align-items:center; gap:8px; padding:10px 14px; background:#161820; border-bottom:1px solid #2A2D35; flex-shrink:0; flex-wrap:wrap; }
-#editor-filename { color:#8B8FA8; font-size:12px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
-#editor-nav { display:flex; align-items:center; gap:6px; flex-shrink:0; }
-#editor-nav-counter { font-size:11px; color:#555; white-space:nowrap; min-width:48px; text-align:center; }
-#editor-toolbar { background:#161820; border-bottom:1px solid #2A2D35; flex-shrink:0; }
-.toolbar-row { display:flex; align-items:center; gap:10px; padding:8px 14px; flex-wrap:wrap; }
-.toolbar-row + .toolbar-row { border-top:1px solid #1E2130; }
-.mode-toggle { display:flex; border-radius:8px; overflow:hidden; border:1px solid #2A2D35; }
-.mode-btn { padding:6px 13px; border:none; font-size:12px; font-weight:600; font-family:'DM Mono',monospace; cursor:pointer; background:#1E2130; color:#8B8FA8; transition:background 0.15s; }
-.mode-btn.active { background:#FF6B00; color:#fff; }
-#label-input { width:58px; padding:5px 8px; border-radius:6px; border:1px solid #2A2D35; background:#1E2130; color:#fff; font-size:13px; outline:none; }
-.color-swatch { width:22px; height:22px; border-radius:50%; cursor:pointer; border:2px solid transparent; flex-shrink:0; transition:border 0.1s; }
-.color-swatch.active { border:2.5px solid #fff; box-shadow:0 0 0 2.5px var(--c); }
-.toggle-pill { display:flex; align-items:center; gap:6px; cursor:pointer; padding:5px 10px; border-radius:20px; border:1px solid #2A2D35; background:#1E2130; font-size:12px; color:#8B8FA8; user-select:none; transition:background 0.15s,color 0.15s,border-color 0.15s; }
-.toggle-pill.on { background:#152215; border-color:#00C853; color:#00C853; }
-.toggle-pill .tdot { width:8px; height:8px; border-radius:50%; background:#555; transition:background 0.15s; }
-.toggle-pill.on .tdot { background:#00C853; }
-.slider-group { display:flex; align-items:center; gap:7px; }
-.slider-label { font-size:11px; color:#666; white-space:nowrap; min-width:40px; }
-.slider-val   { font-size:11px; color:#FF6B00; min-width:32px; text-align:right; }
-input[type=range] { -webkit-appearance:none; width:90px; height:4px; border-radius:2px; background:#2A2D35; outline:none; cursor:pointer; }
-input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#FF6B00; cursor:pointer; border:2px solid #fff; }
-input[type=range]::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:#FF6B00; border:2px solid #fff; }
-#marker-count-badge { font-size:11px; color:#555; white-space:nowrap; }
-#editor-scroll { flex:1; overflow:auto; display:flex; justify-content:center; padding:14px; }
-#editor-canvas-wrap { position:relative; display:inline-block; max-width:100%; align-self:flex-start; }
-#editor-img { display:block; max-width:100%; height:auto; user-select:none; pointer-events:none; }
-#marker-layer { position:absolute; top:0; left:0; width:100%; height:100%; }
-.marker-dot { position:absolute; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,0.8); cursor:pointer; user-select:none; transform:translate(-50%,-50%); border:2.5px solid rgba(0,0,0,0.4); box-shadow:0 2px 8px rgba(0,0,0,0.35); transition:box-shadow 0.12s; letter-spacing:-0.5px; touch-action:none; }
-.marker-dot.selected { border:3px solid #fff !important; z-index:20; }
-.marker-del-btn { position:absolute; top:-9px; right:-9px; width:19px; height:19px; border-radius:50%; background:#FF1744; border:2px solid #fff; color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; cursor:pointer; z-index:30; opacity:1 !important; }
-.leader-handle { position:absolute; width:14px; height:14px; border-radius:50%; border:2.5px solid #fff; cursor:grab; transform:translate(-50%,-50%); z-index:22; box-shadow:0 2px 6px rgba(0,0,0,0.5); touch-action:none; }
-.leader-handle:active { cursor:grabbing; }
-.prop-panel { position:absolute; background:#1E2130; border:1px solid #2A2D35; border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:8px; z-index:50; min-width:205px; box-shadow:0 8px 24px rgba(0,0,0,0.6); pointer-events:all; }
-.prop-row { display:flex; align-items:center; gap:8px; font-size:11px; color:#8B8FA8; }
-.prop-row span.lbl { min-width:44px; }
-.prop-row input[type=range] { width:85px; }
-.prop-row .vl { color:#FF6B00; min-width:32px; text-align:right; }
-.prop-row input[type=checkbox] { accent-color:#FF6B00; width:14px; height:14px; cursor:pointer; flex-shrink:0; }
-#dbx-modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:200; display:flex; align-items:center; justify-content:center; }
-#dbx-modal-bg.hidden { display:none; }
-#dbx-modal { background:#161820; border:1px solid #2A2D35; border-radius:14px; padding:24px; width:min(400px,92vw); display:flex; flex-direction:column; gap:16px; }
-#dbx-modal h3 { font-size:15px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px; }
-#dbx-modal p  { font-size:12px; color:#8B8FA8; line-height:1.7; }
-#dbx-folder-input { width:100%; padding:8px 10px; border-radius:7px; border:1px solid #2A2D35; background:#1E2130; color:#fff; font-size:13px; outline:none; }
-#dbx-folder-input:focus { border-color:#0061FE; }
-.dbx-modal-row { display:flex; gap:8px; }
-.dbx-example { font-size:10px; color:#444; margin-top:-8px; }
-#progress-wrap { display:none; position:fixed; bottom:60px; left:50%; transform:translateX(-50%); background:#1E2130; border:1px solid #2A2D35; border-radius:12px; padding:14px 20px; z-index:300; min-width:260px; }
-#progress-wrap.show { display:block; }
-#progress-label { font-size:12px; color:#C8CADC; margin-bottom:8px; text-align:center; }
-#progress-bar-bg { background:#2A2D35; border-radius:4px; height:6px; overflow:hidden; }
-#progress-bar { background:#0061FE; height:6px; border-radius:4px; width:0%; transition:width 0.3s; }
-#toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); padding:9px 20px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap; z-index:400; pointer-events:none; opacity:0; transition:opacity 0.25s; max-width:90vw; text-align:center; }
-#toast.show { opacity:1; }
-#toast.ok  { background:#00C853; color:#fff; }
-#toast.err { background:#FF1744; color:#fff; }
-#toast.inf { background:#0061FE; color:#fff; }
+button {
+  cursor: pointer;
+  font-family: 'Space Grotesk', 'Noto Sans JP', system-ui, sans-serif;
+  border: none;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+button:hover  { opacity: 0.88; }
+button:active { transform: scale(0.97); opacity: 0.72; }
+input, select { font-family: 'Space Grotesk', 'Noto Sans JP', system-ui, sans-serif; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ===== HEADER ===== */
+#header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+.logo-wrap { display: flex; flex-direction: column; gap: 1px; }
+.logo-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
+.logo-mark {
+  width: 30px; height: 30px;
+  background: var(--orange);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 10px rgba(255,107,0,0.4);
+  flex-shrink: 0;
+}
+.logo-mark svg { width: 18px; height: 18px; }
+.logo-sub {
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  color: var(--text3);
+  font-weight: 600;
+  padding-left: 38px;
+}
+#header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ===== DBX BADGE ===== */
+#dbx-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--r-f);
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+#dbx-badge:hover { border-color: var(--border2); color: var(--text2); }
+#dbx-badge.connected { background: var(--dbx-t); border-color: rgba(0,97,254,0.35); color: #5B9EFF; }
+#dbx-badge .dbx-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text3);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+#dbx-badge.connected .dbx-dot { background: var(--dbx); }
+
+/* ===== BUTTONS ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 14px;
+  border-radius: var(--r-m);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  min-height: 36px;
+}
+.btn-primary   { background: var(--orange); color: #fff; }
+.btn-primary:hover { background: var(--orange-d); opacity: 1; }
+.btn-secondary { background: var(--elevated); color: var(--text2); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--hover); color: var(--text); border-color: var(--border2); opacity: 1; }
+.btn-dbx       { background: var(--dbx); color: #fff; }
+.btn-dbx:hover { background: #0050D0; opacity: 1; }
+.btn:disabled  { opacity: 0.35; cursor: not-allowed; transform: none !important; }
+
+/* ===== VIEWS ===== */
+#view-upload, #view-gallery, #view-editor {
+  flex: 1; overflow: hidden; display: none; flex-direction: column;
+}
+#view-upload.active, #view-gallery.active, #view-editor.active { display: flex; }
+
+/* ===== SETUP NOTICE ===== */
+#setup-notice {
+  background: var(--dbx-t);
+  border: 1px solid rgba(0,97,254,0.25);
+  border-radius: var(--r-m);
+  margin: 12px;
+  padding: 12px 16px;
+  font-size: 11px;
+  color: #5B9EFF;
+  line-height: 1.8;
+  flex-shrink: 0;
+}
+#setup-notice b { color: var(--text); }
+#setup-notice code { background: rgba(0,97,254,0.1); padding: 1px 6px; border-radius: 4px; font-size: 10px; }
+#setup-notice.hidden { display: none; }
+
+/* ===== UPLOAD VIEW ===== */
+#view-upload {
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+#view-upload::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,107,0,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,107,0,0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+#drop-zone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  z-index: 1;
+  gap: 0;
+}
+.upload-card {
+  background: var(--surface);
+  border: 2px dashed var(--border2);
+  border-radius: 24px;
+  padding: 52px 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  max-width: 460px;
+  width: 100%;
+  transition: all 0.22s;
+}
+#drop-zone.drag-over .upload-card {
+  border-color: var(--orange);
+  background: var(--orange-t);
+  transform: scale(1.02);
+  box-shadow: 0 0 0 4px var(--orange-t2);
+}
+.upload-icon-wrap {
+  width: 76px; height: 76px;
+  background: var(--orange);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 28px rgba(255,107,0,0.4);
+}
+.upload-icon-wrap svg { width: 38px; height: 38px; }
+.upload-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.35;
+}
+.upload-sub {
+  font-size: 13px;
+  color: var(--text2);
+  text-align: center;
+  line-height: 1.6;
+  margin-top: -4px;
+}
+.upload-cta {
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-m);
+  padding: 13px 32px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Space Grotesk', 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  min-height: 48px;
+  transition: all 0.15s;
+  margin-top: 4px;
+}
+.upload-cta:hover { background: var(--orange-d); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(255,107,0,0.4); opacity: 1; }
+.upload-fmts {
+  display: flex;
+  gap: 6px;
+  margin-top: -4px;
+}
+.fmt-tag {
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-s);
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--text3);
+  font-weight: 600;
+}
+
+/* ===== STATS BAR ===== */
+#stats-bar {
+  display: flex;
+  align-items: stretch;
+  padding: 0 0;
+  height: 40px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text2);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 18px;
+  white-space: nowrap;
+  border-right: 1px solid var(--border);
+}
+.stat-item:first-child { padding-left: 16px; }
+.stat-n { color: var(--orange); font-weight: 700; font-size: 14px; }
+.stat-hint {
+  margin-left: auto;
+  padding: 0 14px;
+  font-size: 11px;
+  color: var(--text3);
+  display: flex;
+  align-items: center;
+}
+
+/* ===== GALLERY ACTIONS ===== */
+#gallery-actions {
+  display: flex;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--orange-t);
+  border-bottom: 1px solid rgba(255,107,0,0.18);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+}
+#gallery-actions.hidden { display: none; }
+#gallery-actions span { font-size: 12px; color: var(--orange); font-weight: 700; }
+
+/* ===== GALLERY ===== */
+#gallery-scroll { flex: 1; overflow-y: auto; }
+#gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 12px;
+  padding: 14px;
+}
+.photo-card {
+  border-radius: var(--r-l);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  position: relative;
+  transition: all 0.15s;
+  overflow: hidden;
+}
+.photo-card:hover {
+  border-color: var(--border2);
+  transform: translateY(-2px);
+  box-shadow: var(--sh-m);
+}
+.photo-card.selected {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 2px var(--orange-t2);
+}
+.card-checkbox {
+  position: absolute;
+  top: 8px; left: 8px;
+  z-index: 5;
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  background: rgba(12,16,24,0.65);
+  border: 1.5px solid rgba(255,255,255,0.25);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  backdrop-filter: blur(4px);
+  transition: all 0.12s;
+}
+.card-checkbox.checked { background: var(--orange); border-color: var(--orange); }
+.card-del {
+  position: absolute;
+  top: 8px; right: 8px;
+  z-index: 5;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: rgba(239,68,68,0.82);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+  backdrop-filter: blur(4px);
+  border: 1.5px solid rgba(255,255,255,0.2);
+  transition: all 0.12s;
+}
+.card-del:hover { background: var(--danger); transform: scale(1.12); opacity: 1; }
+.card-thumb {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+}
+.card-info { padding: 8px 10px 4px; }
+.card-name {
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-markers {
+  color: var(--orange);
+  font-size: 11px;
+  margin-top: 3px;
+  font-weight: 600;
+}
+.card-edit-btn {
+  width: calc(100% - 16px);
+  margin: 6px 8px 8px;
+  display: block;
+  text-align: center;
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-m);
+  padding: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Space Grotesk', 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  min-height: 36px;
+  transition: all 0.15s;
+}
+.card-edit-btn:hover { background: var(--orange-d); opacity: 1; }
+
+/* ===== EDITOR TOPBAR ===== */
+#editor-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  height: 48px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#editor-filename {
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.btn-text-short { display: none; }
+
+/* ===== EDITOR TOOLBAR ===== */
+#editor-toolbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  flex-wrap: wrap;
+}
+.toolbar-row + .toolbar-row { border-top: 1px solid var(--border); }
+.toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* MODE TOGGLE */
+.mode-toggle {
+  display: flex;
+  border-radius: var(--r-m);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--elevated);
+  flex-shrink: 0;
+}
+.mode-btn {
+  padding: 7px 14px;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Space Grotesk', 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text3);
+  transition: all 0.15s;
+  min-height: 34px;
+  min-width: 68px;
+}
+.mode-btn.active  { background: var(--orange); color: #fff; }
+.mode-btn:hover:not(.active) { background: var(--hover); color: var(--text2); opacity: 1; }
+
+/* LABEL INPUT */
+.input-group { display: flex; align-items: center; gap: 5px; }
+.input-lbl { font-size: 11px; color: var(--text3); font-weight: 600; white-space: nowrap; }
+#label-input {
+  width: 56px;
+  padding: 6px 8px;
+  border-radius: var(--r-s);
+  border: 1.5px solid var(--border);
+  background: var(--elevated);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  text-align: center;
+  min-height: 34px;
+  transition: border-color 0.15s;
+}
+#label-input:focus { border-color: var(--orange); }
+
+/* SWATCHES */
+.color-swatch {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  flex-shrink: 0;
+  transition: all 0.12s;
+  outline: 2.5px solid transparent;
+  outline-offset: 2px;
+}
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.active { outline: 2.5px solid #fff; outline-offset: 2px; transform: scale(1.1); }
+
+/* TOGGLE PILL */
+.toggle-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: var(--r-f);
+  border: 1.5px solid var(--border);
+  background: var(--elevated);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text3);
+  user-select: none;
+  transition: all 0.15s;
+  min-height: 34px;
+  white-space: nowrap;
+}
+.toggle-pill.on { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.3); color: #4ade80; }
+.toggle-pill .tdot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); transition: background 0.15s; flex-shrink: 0; }
+.toggle-pill.on .tdot { background: var(--success); }
+
+/* SLIDERS */
+.slider-group { display: flex; align-items: center; gap: 7px; }
+.slider-label { font-size: 11px; color: var(--text3); white-space: nowrap; font-weight: 600; }
+.slider-val { font-size: 12px; color: var(--orange); min-width: 36px; text-align: right; font-weight: 700; }
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100px; height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--orange);
+  cursor: pointer;
+  border: 2.5px solid var(--surface);
+  box-shadow: 0 1px 4px rgba(255,107,0,0.45);
+}
+input[type=range]::-moz-range-thumb {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--orange);
+  border: 2.5px solid var(--surface);
+}
+#marker-count-badge {
+  font-size: 12px;
+  color: var(--text3);
+  white-space: nowrap;
+  margin-left: auto;
+  font-weight: 600;
+}
+#marker-count-badge .cn { color: var(--orange); }
+
+/* ===== EDITOR CANVAS ===== */
+#editor-scroll {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+  background: #070A0F;
+}
+#editor-canvas-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  align-self: flex-start;
+  border-radius: var(--r-m);
+  overflow: visible;
+  box-shadow: 0 4px 40px rgba(0,0,0,0.7);
+}
+#editor-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+  border-radius: var(--r-m);
+}
+#marker-layer {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  overflow: visible;
+}
+
+/* ===== MARKERS ===== */
+.marker-dot {
+  position: absolute;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.75);
+  cursor: pointer;
+  user-select: none;
+  transform: translate(-50%,-50%);
+  border: 2.5px solid rgba(0,0,0,0.3);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  transition: box-shadow 0.12s;
+  letter-spacing: -0.5px;
+}
+.marker-dot.selected { border: 3px solid #fff !important; z-index: 20; }
+.marker-del-btn {
+  position: absolute;
+  top: -9px; right: -9px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--danger);
+  border: 2px solid var(--surface);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 900;
+  cursor: pointer; z-index: 30;
+}
+
+/* ===== PROP PANEL ===== */
+.prop-panel {
+  position: absolute;
+  background: var(--elevated);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-l);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 50;
+  min-width: 214px;
+  box-shadow: var(--sh-l);
+  pointer-events: all;
+}
+.prop-panel-head {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.prop-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text2);
+  font-weight: 600;
+}
+.prop-row span.lbl { min-width: 44px; }
+.prop-row input[type=range] { width: 88px; }
+.prop-row .vl { color: var(--orange); min-width: 34px; text-align: right; font-weight: 700; }
+.prop-row input[type=checkbox] { accent-color: var(--orange); width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
+
+/* ===== TOOLBAR MOBILE HEADER ===== */
+.toolbar-mobile-header {
+  display: none;
+  align-items: center;
+  padding: 10px 16px 4px;
+  gap: 8px;
+}
+.toolbar-drag-handle {
+  width: 32px; height: 4px;
+  background: var(--border2);
+  border-radius: 2px;
+  margin: 0 auto 2px;
+  display: block;
+}
+.toolbar-mobile-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  flex: 1;
+}
+.toolbar-close-btn {
+  width: 28px; height: 28px;
+  border-radius: var(--r-s);
+  background: var(--hover);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* ===== MOBILE BOTTOM BAR ===== */
+#mobile-bottom-bar {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  height: 60px;
+}
+.mob-mode-toggle {
+  display: flex;
+  border-radius: var(--r-m);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--elevated);
+  flex: 1;
+}
+.mob-mode-btn {
+  flex: 1;
+  height: 44px;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'Space Grotesk', 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text3);
+  transition: all 0.15s;
+}
+.mob-mode-btn.active { background: var(--orange); color: #fff; }
+#mob-color-strip {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 0 2px;
+}
+.mob-color-dot {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.12s;
+  outline: 2.5px solid transparent;
+  outline-offset: 2px;
+  border: 2px solid transparent;
+}
+.mob-color-dot.active { outline: 2.5px solid #fff; transform: scale(1.12); }
+#btn-toolbar-expand {
+  width: 44px; height: 44px;
+  border-radius: var(--r-m);
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  font-size: 18px;
+}
+#btn-toolbar-expand.active {
+  background: var(--orange-t);
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+/* ===== TOOLBAR BACKDROP ===== */
+#toolbar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(2px);
+}
+#toolbar-backdrop.show { display: block; }
+
+/* ===== DBX MODAL ===== */
+#dbx-modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.82);
+  z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(6px);
+}
+#dbx-modal-bg.hidden { display: none; }
+#dbx-modal {
+  background: var(--elevated);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-xl);
+  padding: 24px;
+  width: min(400px, 92vw);
+  display: flex; flex-direction: column; gap: 16px;
+  box-shadow: var(--sh-l);
+}
+#dbx-modal h3 { font-size: 16px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+#dbx-modal p  { font-size: 12px; color: var(--text2); line-height: 1.7; }
+#dbx-folder-input {
+  width: 100%; padding: 10px 12px;
+  border-radius: var(--r-m);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  font-family: 'Space Grotesk', 'Noto Sans JP', sans-serif;
+  min-height: 44px;
+  transition: border-color 0.15s;
+}
+#dbx-folder-input:focus { border-color: var(--dbx); }
+.dbx-modal-row { display: flex; gap: 8px; }
+.dbx-example { font-size: 10px; color: var(--text3); margin-top: -8px; line-height: 1.7; }
+
+/* ===== PROGRESS ===== */
+#progress-wrap {
+  display: none;
+  position: fixed; bottom: 80px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--elevated);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-l);
+  padding: 16px 22px;
+  z-index: 300; min-width: 280px;
+  box-shadow: var(--sh-l);
+}
+#progress-wrap.show { display: block; }
+#progress-label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 10px; text-align: center; }
+#progress-bar-bg { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
+#progress-bar    { background: var(--dbx); height: 6px; border-radius: 4px; width: 0%; transition: width 0.3s; }
+
+/* ===== TOAST ===== */
+#toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 22px;
+  border-radius: var(--r-f);
+  font-size: 13px; font-weight: 700;
+  white-space: nowrap; z-index: 400;
+  pointer-events: none; opacity: 0;
+  transition: opacity 0.25s;
+  max-width: 90vw; text-align: center;
+  box-shadow: var(--sh-m);
+}
+#toast.show { opacity: 1; }
+#toast.ok  { background: var(--success); color: #fff; }
+#toast.err { background: var(--danger);  color: #fff; }
+#toast.inf { background: var(--dbx);     color: #fff; }
+
+/* ===== RESPONSIVE ===== */
+@media (min-width: 600px) {
+  #gallery-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+}
+@media (min-width: 1024px) {
+  #gallery-grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+}
+
+/* ===== MOBILE (<768px) ===== */
+@media (max-width: 767px) {
+  #header { height: 48px; padding: 0 12px; }
+  .logo-sub { display: none; }
+
+  /* Editor topbar compact */
+  #editor-topbar { height: 44px; padding: 0 10px; gap: 6px; }
+  #editor-topbar .btn { padding: 7px 10px; font-size: 11px; min-height: 32px; }
+  .btn-text-long  { display: none; }
+  .btn-text-short { display: inline; }
+
+  /* Toolbar becomes slide-up sheet */
+  #editor-toolbar {
+    position: fixed;
+    bottom: 60px; left: 0; right: 0;
+    z-index: 40;
+    border-top: 1px solid var(--border2);
+    border-bottom: none;
+    box-shadow: 0 -4px 32px rgba(0,0,0,0.6);
+    border-radius: 18px 18px 0 0;
+    overflow: hidden;
+    transform: translateY(120%);
+    transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  #editor-toolbar.mobile-open { transform: translateY(0); }
+  .toolbar-mobile-header { display: flex; }
+  .toolbar-row { padding: 8px 16px; }
+  input[type=range] { width: 110px; }
+
+  /* Mobile bottom bar */
+  #mobile-bottom-bar { display: flex; }
+
+  /* Prop panel fixed at bottom */
+  .prop-panel {
+    position: fixed !important;
+    bottom: 72px !important;
+    top: auto !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 92vw !important;
+    max-width: 340px !important;
+    z-index: 45 !important;
+  }
+
+  /* Editor canvas */
+  #editor-scroll { padding: 12px; }
+
+  /* Upload card */
+  .upload-card { padding: 36px 28px; }
+  .upload-icon-wrap { width: 64px; height: 64px; border-radius: 16px; }
+  .upload-icon-wrap svg { width: 32px; height: 32px; }
+  .upload-title { font-size: 18px; }
+}
+
+/* ===== DESKTOP: hide mobile bar ===== */
+@media (min-width: 768px) {
+  #mobile-bottom-bar { display: none !important; }
+  #editor-toolbar {
+    position: static !important;
+    transform: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .toolbar-mobile-header { display: none !important; }
+}
+
+/* ===== NEW FEATURES ===== */
+
+/* Restore banner */
+#restore-banner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  background: rgba(0,97,254,0.08);
+  border-bottom: 1px solid rgba(0,97,254,0.22);
+  font-size: 12px;
+  color: #5B9EFF;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+#restore-banner.show { display: flex; }
+#restore-banner .rb-label { font-weight: 600; }
+#restore-banner .rb-time  { color: var(--text2); font-size: 11px; }
+
+/* Undo button */
+#btn-undo {
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-m);
+  color: var(--text2);
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Space Grotesk','Noto Sans JP',sans-serif;
+  min-height: 36px;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+#btn-undo:hover { background: var(--hover); color: var(--text); border-color: var(--border2); opacity: 1; }
+
+/* Camera button (mobile only) */
+#btn-camera { display: none; }
+@media (max-width: 767px) { #btn-camera { display: inline-flex; } }
+
+/* Project name input */
+#project-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border-right: 1px solid var(--border);
+}
+#project-name-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Space Grotesk','Noto Sans JP',sans-serif;
+  padding: 3px 4px;
+  outline: none;
+  width: 130px;
+  transition: border-color 0.15s;
+}
+#project-name-input:focus { border-bottom-color: var(--orange); }
+#project-name-input::placeholder { color: var(--text3); }
+.pname-icon { font-size: 13px; }
+
+/* Sort select */
+#gallery-sort {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 4px 28px 4px 10px;
+  background: var(--elevated) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23555' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-s);
+  color: var(--text2);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Space Grotesk','Noto Sans JP',sans-serif;
+  outline: none;
+  cursor: pointer;
+  min-height: 28px;
+  transition: border-color 0.15s;
+}
+#gallery-sort:hover { border-color: var(--border2); }
+
+/* Zoom badge */
+#zoom-badge {
+  position: fixed;
+  bottom: 76px;
+  right: 14px;
+  background: rgba(0,0,0,0.72);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--r-f);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+#zoom-badge.show { opacity: 1; }
 </style>
 </head>
 <body>
 
+<!-- ========== HEADER ========== -->
 <div id="header">
-  <div>
-    <div class="logo-title"><span>⬡</span> 配筋マーカー</div>
+  <div class="logo-wrap">
+    <div class="logo-title">
+      <div class="logo-mark">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="14" cy="14" r="6.5" stroke="white" stroke-width="2.2"/>
+          <circle cx="14" cy="14" r="2.2" fill="white"/>
+          <line x1="14" y1="5.5" x2="14" y2="3" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="14" y1="23" x2="14" y2="25" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="5.5" y1="14" x2="3" y2="14" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="22.5" y1="14" x2="25" y2="14" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>
+      配筋マーカー
+    </div>
     <div class="logo-sub">REBAR PHOTO MARKER SYSTEM</div>
   </div>
+
   <div id="header-actions">
     <div id="dbx-badge" onclick="dbxToggle()">
       <div class="dbx-dot"></div>
       <span id="dbx-badge-text">Dropbox 未接続</span>
     </div>
     <button class="btn btn-secondary" id="btn-select-all" style="display:none">全選択</button>
-    <input type="file" id="file-input" accept="image/*" multiple style="display:none">
-    <button class="btn btn-primary" id="btn-add-photos">＋ 写真追加</button>
+    <input type="file" id="file-input"   accept="image/*" multiple style="display:none">
+    <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none">
+    <button class="btn btn-secondary" id="btn-camera">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="3.5" width="11" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="6.5" cy="7.5" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 3.5V3a1 1 0 011-1h2a1 1 0 011 1v.5" stroke="currentColor" stroke-width="1.4"/></svg>
+      撮影
+    </button>
+    <button class="btn btn-primary" id="btn-add-photos">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      写真追加
+    </button>
   </div>
 </div>
 
-<div id="setup-notice" class="hidden"></div>
+<!-- SETUP NOTICE -->
+<div id="setup-notice">
+  ⚙️ <b>Dropbox連携の初期設定：</b>
+  HTMLファイルの先頭の <code>DROPBOX_APP_KEY</code> を取得したApp Keyに書き換えてください。<br>
+  手順: <b>①</b> <a href="https://www.dropbox.com/developers/apps" target="_blank" style="color:#5B9EFF">dropbox.com/developers/apps</a> → Create app → Scoped / Full Dropbox →
+  <b>②</b> Permissionsタブで <code>files.content.write</code> にチェック →
+  <b>③</b> SettingsタブのApp keyをコピー →
+  <b>④</b> Redirect URIsにこのHTMLのURLを追加
+</div>
 
+<!-- ========== UPLOAD VIEW ========== -->
 <div id="view-upload" class="active">
   <div id="drop-zone">
-    <div class="upload-icon">📷</div>
-    <div>
-      <div class="upload-title">写真をドロップ または タップして選択</div>
-      <div class="upload-sub">JPG・PNG対応 · 複数枚まとめて追加可能</div>
+    <div class="upload-card">
+      <div class="upload-icon-wrap">
+        <svg viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 26a8 8 0 100-16 8 8 0 000 16z" fill="white" opacity="0.9"/>
+          <path d="M6 13h2.8l2.2-4.5h16l2.2 4.5H32a2 2 0 012 2v16a2 2 0 01-2 2H6a2 2 0 01-2-2V15a2 2 0 012-2z" stroke="white" stroke-width="2" fill="none" stroke-linejoin="round"/>
+          <circle cx="19" cy="21" r="3.5" fill="rgba(255,107,0,0.8)"/>
+        </svg>
+      </div>
+      <div>
+        <div class="upload-title">写真をドロップ<br>またはタップして選択</div>
+      </div>
+      <div class="upload-sub">複数枚まとめて追加できます</div>
+      <button class="upload-cta" onclick="document.getElementById('file-input').click()">ファイルを選択する</button>
+      <div class="upload-fmts">
+        <span class="fmt-tag">JPG</span>
+        <span class="fmt-tag">PNG</span>
+        <span class="fmt-tag">複数枚OK</span>
+      </div>
     </div>
-    <div class="drop-hint">ここにドラッグ＆ドロップ</div>
   </div>
 </div>
 
+<!-- RESTORE BANNER -->
+<div id="restore-banner">
+  <span class="rb-label">💾 前回の作業データがあります</span>
+  <span class="rb-time" id="restore-time"></span>
+  <button class="btn btn-secondary" style="padding:5px 12px;font-size:11px;min-height:28px;" onclick="confirmRestore()">復元する</button>
+  <button onclick="dismissRestore()" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:0 4px;line-height:1;margin-left:auto;">×</button>
+</div>
+
+<!-- ========== GALLERY VIEW ========== -->
 <div id="view-gallery">
   <div id="stats-bar">
-    <span>写真 <span class="accent" id="stat-total">0</span> 枚</span>
-    <span>選択中 <span class="accent" id="stat-selected">0</span> 枚</span>
-    <span>マーカー計 <span class="accent" id="stat-markers">0</span> 個</span>
-    <span class="hint">ドロップで追加</span>
+    <div class="stat-item">
+      写真 <span class="stat-n" id="stat-total">0</span> 枚
+    </div>
+    <div class="stat-item">
+      選択中 <span class="stat-n" id="stat-selected">0</span> 枚
+    </div>
+    <div class="stat-item">
+      マーカー <span class="stat-n" id="stat-markers">0</span> 個
+    </div>
+    <div id="project-name-wrap">
+      <span class="pname-icon">📁</span>
+      <input type="text" id="project-name-input" placeholder="現場名（任意）" maxlength="24">
+    </div>
+    <div class="stat-hint" style="display:flex;align-items:center;gap:8px;">
+      <select id="gallery-sort" onchange="changeSortOrder(this.value)">
+        <option value="added">追加順</option>
+        <option value="name">名前順</option>
+        <option value="markers">マーカー数順</option>
+      </select>
+    </div>
   </div>
   <div id="gallery-actions" class="hidden">
     <span id="gallery-sel-label"></span>
@@ -168,32 +1163,51 @@ input[type=range]::-moz-range-thumb { width:14px; height:14px; border-radius:50%
   </div>
 </div>
 
+<!-- ========== EDITOR VIEW ========== -->
 <div id="view-editor">
   <div id="editor-topbar">
-    <button class="btn btn-secondary" id="btn-back">← 戻る</button>
+    <button class="btn btn-secondary" id="btn-back">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 1L3 6l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="btn-text-long">戻る</span>
+    </button>
+    <button id="btn-undo" title="元に戻す (Ctrl+Z)">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 5.5h6a3.5 3.5 0 010 7H5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 5.5L4.5 3M2 5.5L4.5 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="btn-text-long">元に戻す</span>
+    </button>
     <span id="editor-filename"></span>
-    <!-- ★前へ・次へナビゲーション -->
-    <div id="editor-nav">
-      <button class="btn btn-secondary" id="btn-prev">◀ 前へ</button>
-      <span id="editor-nav-counter">1 / 1</span>
-      <button class="btn btn-secondary" id="btn-next">次へ ▶</button>
-    </div>
-    <button class="btn btn-dbx"     id="btn-dbx-save">☁ Dropboxに保存</button>
-    <button class="btn btn-primary" id="btn-download">↓ DL</button>
+    <button class="btn btn-dbx"     id="btn-dbx-save">
+      ☁ <span class="btn-text-long">Dropboxに保存</span><span class="btn-text-short">保存</span>
+    </button>
+    <button class="btn btn-primary" id="btn-download">
+      ↓ <span class="btn-text-long">ダウンロード</span><span class="btn-text-short">DL</span>
+    </button>
   </div>
+
+  <!-- Toolbar (desktop: static top / mobile: slide-up sheet) -->
   <div id="editor-toolbar">
+    <div class="toolbar-mobile-header">
+      <span class="toolbar-drag-handle"></span>
+      <span class="toolbar-mobile-title">マーカー設定</span>
+      <button class="toolbar-close-btn" onclick="closeMobileToolbar()">✕</button>
+    </div>
     <div class="toolbar-row">
       <div class="mode-toggle">
         <button class="mode-btn active" id="btn-mode-add">＋ 追加</button>
         <button class="mode-btn"        id="btn-mode-select">◎ 選択</button>
       </div>
-      <input id="label-input" type="text" placeholder="ラベル" maxlength="4" value="1">
-      <div id="color-swatches" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+      <div class="toolbar-sep"></div>
+      <div class="input-group">
+        <span class="input-lbl">ラベル</span>
+        <input id="label-input" type="text" placeholder="1" maxlength="4" value="1">
+      </div>
+      <div class="toolbar-sep"></div>
+      <div id="color-swatches" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"></div>
+      <div class="toolbar-sep"></div>
       <div class="toggle-pill on" id="toggle-label">
         <div class="tdot"></div>
         <span id="toggle-label-text">番号あり</span>
       </div>
-      <span id="marker-count-badge">マーカー: 0個</span>
+      <span id="marker-count-badge">マーカー: <span class="cn">0</span>個</span>
     </div>
     <div class="toolbar-row">
       <div class="slider-group">
@@ -201,23 +1215,41 @@ input[type=range]::-moz-range-thumb { width:14px; height:14px; border-radius:50%
         <input type="range" id="slider-size" min="20" max="120" value="50" step="5">
         <span class="slider-val" id="val-size">50</span>
       </div>
+      <div class="toolbar-sep" style="margin: 0 4px;"></div>
       <div class="slider-group">
         <span class="slider-label">透明度</span>
         <input type="range" id="slider-opacity" min="10" max="100" value="100" step="5">
         <span class="slider-val" id="val-opacity">100%</span>
       </div>
-      <span style="font-size:10px;color:#3A3D4A;">次のマーカーに適用</span>
+      <span style="font-size:10px;color:var(--text3);margin-left:auto;">次のマーカーに適用</span>
     </div>
   </div>
+
+  <!-- Mobile bottom bar -->
+  <div id="mobile-bottom-bar">
+    <div class="mob-mode-toggle">
+      <button class="mob-mode-btn active" id="btn-mob-add"    onclick="mobileSetMode('add')">＋ 追加</button>
+      <button class="mob-mode-btn"        id="btn-mob-select" onclick="mobileSetMode('select')">◎ 選択</button>
+    </div>
+    <div id="mob-color-strip"></div>
+    <button id="btn-toolbar-expand" onclick="toggleMobileToolbar()">⚙</button>
+  </div>
+
   <div id="editor-scroll">
     <div id="editor-canvas-wrap">
-      <img id="editor-img" src="" alt="">
-      <svg id="leader-svg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;"></svg>
+      <img id="editor-img" alt="">
       <div id="marker-layer"></div>
     </div>
   </div>
 </div>
 
+<!-- Toolbar backdrop -->
+<div id="toolbar-backdrop"></div>
+
+<!-- Zoom badge -->
+<div id="zoom-badge">100%</div>
+
+<!-- ========== DBX MODAL ========== -->
 <div id="dbx-modal-bg" class="hidden">
   <div id="dbx-modal">
     <h3>☁ Dropboxの保存先フォルダ</h3>
@@ -231,726 +1263,495 @@ input[type=range]::-moz-range-thumb { width:14px; height:14px; border-radius:50%
   </div>
 </div>
 
+<!-- Progress -->
 <div id="progress-wrap">
   <div id="progress-label">アップロード中…</div>
   <div id="progress-bar-bg"><div id="progress-bar"></div></div>
 </div>
 
+<!-- Toast -->
 <div id="toast"></div>
 
 <script>
 // ============================================================
-const DROPBOX_APP_KEY = 'c5xn5alzj04ola4';
+//  ★ Dropbox App Key
 // ============================================================
-const DBX_ENABLED = !!DROPBOX_APP_KEY && DROPBOX_APP_KEY !== 'YOUR_APP_KEY_HERE';
+const DROPBOX_APP_KEY = 'c5xn5alzj04ola4';
+const DBX_ENABLED = DROPBOX_APP_KEY !== 'YOUR_APP_KEY_HERE';
 
-/* ── ストレージヘルパー ── */
-function storageGet(key) {
-  try { var v = localStorage.getItem(key); if (v !== null) return v; } catch(e) {}
-  try { var v = sessionStorage.getItem(key); if (v !== null) return v; } catch(e) {}
+const uid = () => Math.random().toString(36).substr(2, 9);
+function $(id) { return document.getElementById(id); }
+
+// ===== STATE =====
+const COLORS = ['#FF6B00','#FFD600','#00C853','#2979FF','#E040FB','#FF1744'];
+let photos = [], selectedPhotoIds = new Set(), currentPhotoId = null;
+let currentMode = 'add', currentColor = COLORS[0], currentShowLabel = true;
+let currentSize = 50, currentOpacity = 100, selectedMarkerId = null;
+let imgNaturalW = 0, imgNaturalH = 0;
+let sortOrder = 'added', undoStack = [], editorZoom = 1, isDragging = false;
+
+// ===== SETTINGS MEMORY =====
+(function loadSettings(){
   try {
-    var m = document.cookie.match('(?:^|;)\\s*' + key + '=([^;]*)');
-    return m ? decodeURIComponent(m[1]) : null;
-  } catch(e) {}
-  return null;
-}
-function storageSet(key, val) {
-  var saved = false;
-  try { localStorage.setItem(key, val); saved = true; } catch(e) {}
-  try { sessionStorage.setItem(key, val); saved = true; } catch(e) {}
-  if (!saved) {
-    try {
-      var exp = new Date(Date.now() + 7*24*60*60*1000).toUTCString();
-      document.cookie = key + '=' + encodeURIComponent(val) + '; expires=' + exp + '; path=/; SameSite=Lax';
-    } catch(e) {}
-  }
-}
-function storageRemove(key) {
-  try { localStorage.removeItem(key); } catch(e) {}
-  try { sessionStorage.removeItem(key); } catch(e) {}
-  try { document.cookie = key + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'; } catch(e) {}
+    const s = JSON.parse(localStorage.getItem('rmk_settings')||'{}');
+    if (s.color && COLORS.includes(s.color)) currentColor = s.color;
+    if (s.size)    currentSize    = +s.size;
+    if (s.opacity) currentOpacity = +s.opacity;
+    if (typeof s.showLabel==='boolean') currentShowLabel = s.showLabel;
+  } catch(e){}
+})();
+
+function saveSettings(){
+  try {
+    const pname = $('project-name-input');
+    localStorage.setItem('rmk_settings', JSON.stringify({
+      color:currentColor, size:currentSize, opacity:currentOpacity,
+      showLabel:currentShowLabel, projectName: pname?pname.value:''
+    }));
+  } catch(e){}
 }
 
-var dbxToken        = storageGet('dbx_token')  || null;
-var dbxRefreshToken = storageGet('dbx_refresh') || null;
-var dbxPendingAction = null;
-
-function updateDbxBadge() {
-  var badge = document.getElementById('dbx-badge');
-  if (dbxToken || dbxRefreshToken) {
-    badge.classList.add('connected');
-    document.getElementById('dbx-badge-text').textContent = '☁ Dropbox 接続済';
-  } else {
-    badge.classList.remove('connected');
-    document.getElementById('dbx-badge-text').textContent = 'Dropbox 未接続';
-  }
+// ===== AUTO-SAVE =====
+let autoSaveTimer = null;
+function autoSave(){
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(()=>{
+    try { localStorage.setItem('rmk_photos_v2', JSON.stringify(photos)); localStorage.setItem('rmk_save_time', new Date().toISOString()); } catch(e){}
+  }, 1500);
+}
+function checkAutoSave(){
+  try {
+    const saved = localStorage.getItem('rmk_photos_v2'); if(!saved) return;
+    const data = JSON.parse(saved); if(!data||!data.length) return;
+    const t = localStorage.getItem('rmk_save_time');
+    const ts = t ? new Date(t).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+    const banner=$('restore-banner'); if(banner){ banner.classList.add('show'); const el=$('restore-time'); if(el&&ts) el.textContent=' ('+ts+')'; }
+  } catch(e){}
+}
+function confirmRestore(){
+  try {
+    const saved=localStorage.getItem('rmk_photos_v2'); if(!saved) return;
+    photos=JSON.parse(saved); selectedPhotoIds=new Set();
+    const b=$('restore-banner'); if(b) b.classList.remove('show');
+    showView('gallery'); renderGallery(); showToast('データを復元しました','ok');
+  } catch(e){ showToast('復元に失敗しました','err'); }
+}
+function dismissRestore(){
+  const b=$('restore-banner'); if(b) b.classList.remove('show');
+  localStorage.removeItem('rmk_photos_v2'); localStorage.removeItem('rmk_save_time');
 }
 
-async function dbxToggle() {
-  if (!DBX_ENABLED) { showToast('先にApp Keyを設定してください', 'err'); return; }
-  if (dbxToken || dbxRefreshToken) {
-    if (confirm('Dropboxの接続を切断しますか？')) {
-      storageRemove('dbx_token'); storageRemove('dbx_refresh'); storageRemove('dbx_pkce_verifier');
-      dbxToken = null; dbxRefreshToken = null;
-      updateDbxBadge(); showToast('切断しました', 'inf');
+function getProjectFolder(){
+  const pname=$('project-name-input');
+  const n=(pname?pname.value:'').trim().replace(/[\\/:*?"<>|]/g,'_');
+  return n?'配筋写真/'+n:'配筋写真';
+}
+
+// ===== UNDO =====
+function pushUndo(){
+  const p=photos.find(p=>p.id===currentPhotoId); if(!p) return;
+  undoStack.push(JSON.parse(JSON.stringify(p.markers)));
+  if(undoStack.length>50) undoStack.shift();
+}
+function doUndo(){
+  if(!undoStack.length){ showToast('元に戻す履歴がありません','inf'); return; }
+  const p=photos.find(p=>p.id===currentPhotoId); if(!p) return;
+  p.markers=undoStack.pop(); selectedMarkerId=null; renderMarkers(); autoSave();
+  showToast('元に戻しました','inf');
+}
+
+// ===== DROPBOX =====
+let dbxToken = sessionStorage.getItem('dbx_token')||null;
+let dbxPendingAction = null;
+
+function updateDbxBadge(){
+  const badge=$('dbx-badge');
+  if(dbxToken){ badge.classList.add('connected'); $('dbx-badge-text').textContent='☁ Dropbox 接続済'; }
+  else{ badge.classList.remove('connected'); $('dbx-badge-text').textContent='Dropbox 未接続'; }
+}
+async function dbxToggle(){
+  if(!DBX_ENABLED){ showToast('先にApp Keyを設定してください','err'); return; }
+  if(dbxToken){
+    if(confirm('Dropboxの接続を切断しますか？')){
+      sessionStorage.removeItem('dbx_token'); sessionStorage.removeItem('dbx_pkce_verifier');
+      dbxToken=null; updateDbxBadge(); showToast('切断しました','inf');
     }
   } else { await dbxStartAuth(); }
 }
-
-async function dbxStartAuth() {
-  var verifier  = generateVerifier();
-  var challenge = await generateChallenge(verifier);
-  storageSet('dbx_pkce_verifier', verifier);
-  var redirectUri = window.location.origin + window.location.pathname;
-  var url = 'https://www.dropbox.com/oauth2/authorize?' + new URLSearchParams({
-    client_id: DROPBOX_APP_KEY, response_type: 'code',
-    code_challenge: challenge, code_challenge_method: 'S256',
-    redirect_uri: redirectUri, token_access_type: 'offline',
+async function dbxStartAuth(){
+  const verifier=generateVerifier(), challenge=await generateChallenge(verifier);
+  sessionStorage.setItem('dbx_pkce_verifier',verifier); sessionStorage.setItem('dbx_return','auth');
+  const redirectUri=window.location.href.split('?')[0].split('#')[0];
+  window.location.href='https://www.dropbox.com/oauth2/authorize?'+new URLSearchParams({
+    client_id:DROPBOX_APP_KEY, response_type:'code', code_challenge:challenge,
+    code_challenge_method:'S256', redirect_uri:redirectUri, token_access_type:'online'
   });
-  window.location.href = url;
 }
-
-async function dbxHandleCallback() {
-  var params = new URLSearchParams(window.location.search);
-  var code   = params.get('code');
-  if (!code) return;
-  var verifier = storageGet('dbx_pkce_verifier');
-  if (!verifier) { showToast('認証エラー: 再度サインインしてください。', 'err'); window.history.replaceState({}, document.title, window.location.pathname); return; }
-  window.history.replaceState({}, document.title, window.location.pathname);
-  var redirectUri = window.location.origin + window.location.pathname;
-  showToast('Dropbox認証中…', 'inf');
+async function dbxHandleCallback(){
+  const params=new URLSearchParams(window.location.search);
+  const code=params.get('code'), verifier=sessionStorage.getItem('dbx_pkce_verifier');
+  if(!code||!verifier) return;
+  window.history.replaceState({},document.title,window.location.pathname);
+  const redirectUri=window.location.href.split('?')[0].split('#')[0];
   try {
-    var res  = await fetch('https://api.dropboxapi.com/oauth2/token', {
-      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ code, grant_type: 'authorization_code', code_verifier: verifier, client_id: DROPBOX_APP_KEY, redirect_uri: redirectUri }),
+    const res=await fetch('https://api.dropboxapi.com/oauth2/token',{
+      method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:new URLSearchParams({code,grant_type:'authorization_code',code_verifier:verifier,client_id:DROPBOX_APP_KEY,redirect_uri:redirectUri})
     });
-    var data = await res.json();
-    if (data.access_token) {
-      dbxToken = data.access_token; storageSet('dbx_token', dbxToken);
-      if (data.refresh_token) { dbxRefreshToken = data.refresh_token; storageSet('dbx_refresh', dbxRefreshToken); }
-      storageRemove('dbx_pkce_verifier'); updateDbxBadge(); showToast('Dropboxに接続しました ✓', 'ok');
-    } else { showToast('認証失敗: ' + (data.error_description || data.error || JSON.stringify(data)), 'err'); }
-  } catch(e) { showToast('通信エラー: ' + e.message, 'err'); }
+    const data=await res.json();
+    if(data.access_token){ dbxToken=data.access_token; sessionStorage.setItem('dbx_token',dbxToken); sessionStorage.removeItem('dbx_pkce_verifier'); sessionStorage.removeItem('dbx_return'); updateDbxBadge(); showToast('Dropboxに接続しました ✓','ok'); }
+    else showToast('認証失敗: '+(data.error_description||data.error),'err');
+  } catch(e){ showToast('通信エラー: '+e.message,'err'); }
 }
-
-function generateVerifier() {
-  var arr = new Uint8Array(32); crypto.getRandomValues(arr);
-  return btoa(String.fromCharCode.apply(null, arr)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+function generateVerifier(){
+  const arr=new Uint8Array(32); crypto.getRandomValues(arr);
+  return btoa(String.fromCharCode(...arr)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
 }
-async function generateChallenge(verifier) {
-  var data = new TextEncoder().encode(verifier);
-  var digest = await crypto.subtle.digest('SHA-256', data);
-  return btoa(String.fromCharCode.apply(null, new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+async function generateChallenge(v){
+  const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));
+  return btoa(String.fromCharCode(...new Uint8Array(d))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
 }
-
-async function dbxRefreshAccessToken() {
-  if (!dbxRefreshToken) return false;
-  try {
-    var res  = await fetch('https://api.dropboxapi.com/oauth2/token', {
-      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: dbxRefreshToken, client_id: DROPBOX_APP_KEY }),
-    });
-    var data = await res.json();
-    if (data.access_token) { dbxToken = data.access_token; storageSet('dbx_token', dbxToken); return true; }
-  } catch(e) {}
-  return false;
-}
-
-function encodeDropboxArg(obj) {
-  return JSON.stringify(obj).replace(/[^\x20-\x7E]/g, function(c) {
-    return '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4);
+async function dbxUpload(path,blob){
+  const res=await fetch('https://content.dropboxapi.com/2/files/upload',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+dbxToken,'Content-Type':'application/octet-stream','Dropbox-API-Arg':JSON.stringify({path,mode:'overwrite',autorename:true})},
+    body:blob
   });
-}
-
-async function dbxUpload(path, blob, retry) {
-  if (retry === undefined) retry = true;
-  var arg = encodeDropboxArg({ path: path, mode: 'overwrite', autorename: true });
-  var res = await fetch('https://content.dropboxapi.com/2/files/upload', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + dbxToken, 'Content-Type': 'application/octet-stream', 'Dropbox-API-Arg': arg },
-    body: blob,
-  });
-  if (!res.ok) {
-    var err = await res.json().catch(function(){ return {}; });
-    if (res.status === 401 && retry) {
-      var ok = await dbxRefreshAccessToken();
-      if (ok) return dbxUpload(path, blob, false);
-      storageRemove('dbx_token'); storageRemove('dbx_refresh');
-      dbxToken = null; dbxRefreshToken = null; updateDbxBadge();
-      throw new Error('認証期限切れ。再度サインインしてください。');
-    }
-    throw new Error(err.error_summary || res.statusText);
+  if(!res.ok){
+    const err=await res.json().catch(()=>({}));
+    if(res.status===401){ sessionStorage.removeItem('dbx_token'); dbxToken=null; updateDbxBadge(); throw new Error('認証期限切れ。再度サインインしてください。'); }
+    throw new Error(err.error_summary||res.statusText);
   }
-  return res.json();
+  return await res.json();
 }
 
-function openDbxModal(action) {
-  if (!DBX_ENABLED) { showToast('先にApp Keyを設定してください', 'err'); return; }
-  if (!dbxToken && !dbxRefreshToken) { showToast('先にDropboxに接続してください', 'inf'); dbxStartAuth(); return; }
-  dbxPendingAction = action;
-  document.getElementById('dbx-modal-bg').classList.remove('hidden');
+function openDbxModal(action){
+  if(!DBX_ENABLED){ showToast('先にApp Keyを設定してください','err'); return; }
+  if(!dbxToken){ showToast('先にDropboxに接続してください','inf'); dbxStartAuth(); return; }
+  dbxPendingAction=action; $('dbx-folder-input').value=getProjectFolder(); $('dbx-modal-bg').classList.remove('hidden');
 }
-function closeDbxModal() {
-  document.getElementById('dbx-modal-bg').classList.add('hidden');
-  dbxPendingAction = null;
-}
+function closeDbxModal(){ $('dbx-modal-bg').classList.add('hidden'); dbxPendingAction=null; }
 
-document.getElementById('btn-dbx-confirm').onclick = async function() {
-  var folder = document.getElementById('dbx-folder-input').value.trim().replace(/^\/|\/$/g,'') || '配筋写真';
-  var action = dbxPendingAction;
-  closeDbxModal();
-  if (!action) return;
-  if (!dbxToken) {
-    var ok = await dbxRefreshAccessToken();
-    if (!ok) { showToast('再認証が必要です。Dropboxボタンをクリックしてください。', 'err'); return; }
-  }
-  if (action.type === 'single') {
-    var photo = photos.find(function(p){ return p.id === action.id; });
-    if (!photo) { showToast('写真が見つかりません', 'err'); return; }
-    showProgress('アップロード中…', 0);
-    try {
-      var canvas = await renderToCanvas(photo);
-      var blob   = await canvasToBlob(canvas);
-      var fname  = 'marked_' + photo.name.replace(/\.[^.]+$/, '') + '.jpg';
-      await dbxUpload('/' + folder + '/' + fname, blob);
-      hideProgress(); showToast('Dropboxに保存しました ✓', 'ok');
-    } catch(e) { hideProgress(); showToast('保存失敗: ' + e.message, 'err'); console.error(e); }
-  } else if (action.type === 'bulk') {
-    var targets = photos.filter(function(p){ return action.ids.indexOf(p.id) !== -1; });
-    var okCount = 0;
-    showProgress('0 / ' + targets.length + ' 枚', 0);
-    for (var i = 0; i < targets.length; i++) {
-      try {
-        var canvas = await renderToCanvas(targets[i]);
-        var blob   = await canvasToBlob(canvas);
-        var fname  = 'marked_' + targets[i].name.replace(/\.[^.]+$/, '') + '.jpg';
-        await dbxUpload('/' + folder + '/' + fname, blob);
-        okCount++;
-        showProgress(okCount + ' / ' + targets.length + ' 枚完了', okCount / targets.length * 100);
-      } catch(e) { console.error(e); showToast('エラー: ' + e.message, 'err'); }
+$('btn-dbx-confirm').onclick=async()=>{
+  const folder=$('dbx-folder-input').value.trim().replace(/^\/|\/$/g,'')||'配筋写真';
+  closeDbxModal(); if(!dbxPendingAction) return;
+  if(dbxPendingAction.type==='single'){
+    const photo=photos.find(p=>p.id===dbxPendingAction.id); showProgress('アップロード中…',0);
+    try { const blob=await canvasToBlob(await renderToCanvas(photo)); await dbxUpload('/'+folder+'/marked_'+photo.name.replace(/\.[^.]+$/,'')+'.jpg',blob); hideProgress(); showToast('Dropboxに保存しました ✓','ok'); }
+    catch(e){ hideProgress(); showToast('保存失敗: '+e.message,'err'); }
+  } else if(dbxPendingAction.type==='bulk'){
+    const targets=photos.filter(p=>dbxPendingAction.ids.includes(p.id)); let ok=0; showProgress('0 / '+targets.length+' 枚',0);
+    for(const photo of targets){
+      try { const blob=await canvasToBlob(await renderToCanvas(photo)); await dbxUpload('/'+folder+'/marked_'+photo.name.replace(/\.[^.]+$/,'')+'.jpg',blob); ok++; showProgress(ok+' / '+targets.length+' 枚完了',ok/targets.length*100); }
+      catch(e){ showToast('エラー: '+e.message,'err'); }
     }
-    hideProgress();
-    showToast(okCount + ' / ' + targets.length + ' 枚をDropboxに保存しました ✓', 'ok');
+    hideProgress(); showToast(ok+' / '+targets.length+' 枚をDropboxに保存しました ✓','ok');
   }
 };
 
-function showProgress(label, pct) {
-  document.getElementById('progress-wrap').classList.add('show');
-  document.getElementById('progress-label').textContent = label;
-  document.getElementById('progress-bar').style.width = pct + '%';
-}
-function hideProgress() { document.getElementById('progress-wrap').classList.remove('show'); }
-function canvasToBlob(canvas) { return new Promise(function(r){ canvas.toBlob(r, 'image/jpeg', 0.95); }); }
+function showProgress(label,pct){ $('progress-wrap').classList.add('show'); $('progress-label').textContent=label; $('progress-bar').style.width=pct+'%'; }
+function hideProgress(){ $('progress-wrap').classList.remove('show'); }
+function canvasToBlob(canvas){ return new Promise(r=>canvas.toBlob(r,'image/jpeg',0.95)); }
 
-/* ── アプリ本体 ── */
-var COLORS = ['#FF6B00','#FFD600','#00C853','#2979FF','#E040FB','#FF1744'];
-var photos = [], selectedPhotoIds = new Set(), currentPhotoId = null;
-var currentMode = 'add', currentColor = COLORS[0], currentShowLabel = true;
-var currentSize = 50, currentOpacity = 100, selectedMarkerId = null;
-var imgNaturalW = 0, imgNaturalH = 0;
-var _markerDragMoved = false; // ドラッグ後の誤click抑制フラグ
-var _undoStack = []; // Undo スタック（写真IDとマーカー配列のスナップショット）
-function uid(){ return Math.random().toString(36).substr(2,9); }
-function $(id){ return document.getElementById(id); }
-function showView(n){ ['upload','gallery','editor'].forEach(function(v){ $('view-'+v).classList.remove('active'); }); $('view-'+n).classList.add('active'); }
+function showView(n){ ['upload','gallery','editor'].forEach(v=>$('view-'+v).classList.remove('active')); $('view-'+n).classList.add('active'); }
 
-function loadFiles(files) {
-  var imgs = Array.from(files).filter(function(f){ return f.type.startsWith('image/'); });
-  if (!imgs.length) return;
-  var loaded = 0;
-  imgs.forEach(function(f){
-    var r = new FileReader();
-    r.onload = function(e){ photos.push({id:uid(),name:f.name,url:e.target.result,markers:[]}); if(++loaded===imgs.length){showView('gallery');renderGallery();} };
+// ===== FILES =====
+function loadFiles(files){
+  const imgs=Array.from(files).filter(f=>f.type.startsWith('image/')); if(!imgs.length) return;
+  let loaded=0;
+  imgs.forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{ photos.push({id:uid(),name:f.name,url:e.target.result,markers:[],added:Date.now()}); if(++loaded===imgs.length){ showView('gallery'); renderGallery(); autoSave(); } };
     r.readAsDataURL(f);
   });
 }
-$('btn-add-photos').onclick = function(){ $('file-input').click(); };
-$('file-input').onchange    = function(e){ loadFiles(e.target.files); $('file-input').value=''; };
-$('drop-zone').onclick      = function(){ $('file-input').click(); };
-['dragover','dragenter'].forEach(function(ev){ document.addEventListener(ev, function(e){ e.preventDefault(); $('drop-zone').classList.add('drag-over'); }); });
-['dragleave','drop'].forEach(function(ev){ document.addEventListener(ev, function(e){ e.preventDefault(); $('drop-zone').classList.remove('drag-over'); if(ev==='drop') loadFiles(e.dataTransfer.files); }); });
+$('btn-add-photos').onclick=()=>$('file-input').click();
+$('file-input').onchange=e=>{ loadFiles(e.target.files); $('file-input').value=''; };
+$('btn-camera').onclick=()=>$('camera-input').click();
+$('camera-input').onchange=e=>{ loadFiles(e.target.files); $('camera-input').value=''; };
+$('drop-zone').onclick=()=>$('file-input').click();
+['dragover','dragenter'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();$('drop-zone').classList.add('drag-over');}));
+['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();$('drop-zone').classList.remove('drag-over');if(ev==='drop')loadFiles(e.dataTransfer.files);}));
 
-function renderGallery() {
-  $('stat-total').textContent    = photos.length;
-  $('stat-selected').textContent = selectedPhotoIds.size;
-  $('stat-markers').textContent  = photos.reduce(function(s,p){ return s+p.markers.length; }, 0);
-  $('btn-select-all').style.display = photos.length ? '' : 'none';
-  $('btn-select-all').textContent   = (selectedPhotoIds.size===photos.length&&photos.length) ? '全解除' : '全選択';
-  var actBar = $('gallery-actions');
-  if (selectedPhotoIds.size > 0) { actBar.classList.remove('hidden'); $('gallery-sel-label').textContent = selectedPhotoIds.size + '枚選択中'; }
+// ===== GALLERY =====
+function changeSortOrder(order){ sortOrder=order; renderGallery(); }
+
+function renderGallery(){
+  $('stat-total').textContent=photos.length;
+  $('stat-selected').textContent=selectedPhotoIds.size;
+  $('stat-markers').textContent=photos.reduce((s,p)=>s+p.markers.length,0);
+  $('btn-select-all').style.display=photos.length?'':'none';
+  $('btn-select-all').textContent=(selectedPhotoIds.size===photos.length&&photos.length)?'全解除':'全選択';
+  const actBar=$('gallery-actions');
+  if(selectedPhotoIds.size>0){ actBar.classList.remove('hidden'); $('gallery-sel-label').textContent=selectedPhotoIds.size+'枚選択中'; }
   else actBar.classList.add('hidden');
-  $('gallery-grid').innerHTML = '';
-  photos.forEach(function(photo){
-    var sel  = selectedPhotoIds.has(photo.id);
-    var card = document.createElement('div');
-    card.className = 'photo-card' + (sel ? ' selected' : '');
-    card.innerHTML = '<div class="card-checkbox' + (sel?' checked':'') + '" data-id="' + photo.id + '">' + (sel?'✓':'') + '</div>' +
-      '<div class="card-del" data-del="' + photo.id + '">×</div>' +
-      '<img class="card-thumb" src="' + photo.url + '" data-edit="' + photo.id + '">' +
-      '<div class="card-info"><div class="card-name" title="' + photo.name + '">' + photo.name + '</div>' +
-      '<div class="card-markers">マーカー ' + photo.markers.length + '個</div></div>' +
-      '<button class="btn btn-primary card-edit-btn" data-edit="' + photo.id + '">編集</button>';
+  let display=[...photos];
+  if(sortOrder==='name')    display.sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+  if(sortOrder==='markers') display.sort((a,b)=>b.markers.length-a.markers.length);
+  $('gallery-grid').innerHTML='';
+  display.forEach(photo=>{
+    const sel=selectedPhotoIds.has(photo.id);
+    const card=document.createElement('div'); card.className='photo-card'+(sel?' selected':'');
+    card.innerHTML='<div class="card-checkbox'+(sel?' checked':'')+'" data-id="'+photo.id+'">'+(sel?'✓':'')+'</div>'+
+      '<div class="card-del" data-del="'+photo.id+'">×</div>'+
+      '<img class="card-thumb" src="'+photo.url+'" data-edit="'+photo.id+'">'+
+      '<div class="card-info"><div class="card-name" title="'+photo.name+'">'+photo.name+'</div>'+
+      '<div class="card-markers">マーカー '+photo.markers.length+'個</div></div>'+
+      '<button class="card-edit-btn" data-edit="'+photo.id+'">編集する</button>';
     $('gallery-grid').appendChild(card);
   });
-  $('gallery-grid').querySelectorAll('[data-edit]').forEach(function(el){ el.addEventListener('click', function(){ openEditor(el.dataset.edit); }); });
-  $('gallery-grid').querySelectorAll('[data-del]').forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); deletePhoto(el.dataset.del); }); });
-  $('gallery-grid').querySelectorAll('[data-id]').forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); toggleSelect(el.dataset.id); }); });
-  if (!photos.length) showView('upload');
+  $('gallery-grid').querySelectorAll('[data-edit]').forEach(el=>el.addEventListener('click',()=>openEditor(el.dataset.edit)));
+  $('gallery-grid').querySelectorAll('[data-del]').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();deletePhoto(el.dataset.del);}));
+  $('gallery-grid').querySelectorAll('[data-id]').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();toggleSelect(el.dataset.id);}));
+  if(!photos.length) showView('upload');
 }
-function deletePhoto(id){
-  var photo=photos.find(function(p){ return p.id===id; });
-  var name=photo?photo.name:'この写真';
-  if(!confirm(name+' を削除しますか？')) return;
-  photos=photos.filter(function(p){ return p.id!==id; }); selectedPhotoIds.delete(id); renderGallery();
-}
+function deletePhoto(id){ photos=photos.filter(p=>p.id!==id); selectedPhotoIds.delete(id); renderGallery(); autoSave(); }
 function toggleSelect(id){ selectedPhotoIds.has(id)?selectedPhotoIds.delete(id):selectedPhotoIds.add(id); renderGallery(); }
-$('btn-select-all').onclick = function(){ selectedPhotoIds.size===photos.length ? selectedPhotoIds.clear() : photos.forEach(function(p){ selectedPhotoIds.add(p.id); }); renderGallery(); };
-$('btn-bulk-dl2').onclick   = function(){ bulkDownload(); };
-$('btn-bulk-dbx').onclick   = function(){ openDbxModal({type:'bulk', ids:[...selectedPhotoIds]}); };
+$('btn-select-all').onclick=()=>{ selectedPhotoIds.size===photos.length?selectedPhotoIds.clear():photos.forEach(p=>selectedPhotoIds.add(p.id)); renderGallery(); };
+$('btn-bulk-dl2').onclick=()=>bulkDownload();
+$('btn-bulk-dbx').onclick=()=>openDbxModal({type:'bulk',ids:[...selectedPhotoIds]});
 
-/* ── カラースウォッチ ── */
-var swatchWrap = $('color-swatches');
-COLORS.forEach(function(c){
-  var sw = document.createElement('div');
-  sw.className = 'color-swatch' + (c===currentColor?' active':'');
-  sw.style.background = c; sw.style.setProperty('--c', c);
-  sw.onclick = function(){ currentColor=c; swatchWrap.querySelectorAll('.color-swatch').forEach(function(s){ s.classList.remove('active'); }); sw.classList.add('active'); };
+// ===== SWATCHES =====
+const swatchWrap=$('color-swatches');
+COLORS.forEach(c=>{
+  const sw=document.createElement('div');
+  sw.className='color-swatch'+(c===currentColor?' active':'');
+  sw.style.background=c; sw.style.setProperty('--c',c); sw.dataset.color=c;
+  sw.onclick=()=>{ currentColor=c; swatchWrap.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('active',s.dataset.color===c)); syncMobileColors(c); saveSettings(); };
   swatchWrap.appendChild(sw);
 });
-$('toggle-label').onclick   = function(){ currentShowLabel=!currentShowLabel; $('toggle-label').classList.toggle('on',currentShowLabel); $('toggle-label-text').textContent=currentShowLabel?'番号あり':'番号なし'; };
-$('slider-size').oninput = function(){
-  currentSize=+$('slider-size').value; $('val-size').textContent=currentSize;
-  // 選択中マーカーにも即時反映
-  if(selectedMarkerId && currentMode==='select'){
-    var p=photos.find(function(p){ return p.id===currentPhotoId; });
-    var m=p&&p.markers.find(function(m){ return m.id===selectedMarkerId; });
-    if(m){ m.size=currentSize; renderMarkers(); }
-  }
-};
-$('slider-opacity').oninput = function(){
-  currentOpacity=+$('slider-opacity').value; $('val-opacity').textContent=currentOpacity+'%';
-  // 選択中マーカーにも即時反映
-  if(selectedMarkerId && currentMode==='select'){
-    var p=photos.find(function(p){ return p.id===currentPhotoId; });
-    var m=p&&p.markers.find(function(m){ return m.id===selectedMarkerId; });
-    if(m){ m.opacity=currentOpacity; renderMarkers(); }
-  }
-};
 
-/* ── エディタ ── */
+$('toggle-label').classList.toggle('on',currentShowLabel);
+$('toggle-label-text').textContent=currentShowLabel?'番号あり':'番号なし';
+$('toggle-label').onclick=()=>{ currentShowLabel=!currentShowLabel; $('toggle-label').classList.toggle('on',currentShowLabel); $('toggle-label-text').textContent=currentShowLabel?'番号あり':'番号なし'; saveSettings(); };
 
-/* ★ 前へ・次へナビゲーション更新 */
-function updateNavButtons() {
-  var idx = photos.findIndex(function(p){ return p.id === currentPhotoId; });
-  var total = photos.length;
-  $('editor-nav-counter').textContent = (idx + 1) + ' / ' + total;
-  $('btn-prev').disabled = (idx <= 0);
-  $('btn-next').disabled = (idx >= total - 1);
+$('slider-size').value=currentSize; $('val-size').textContent=currentSize;
+$('slider-opacity').value=currentOpacity; $('val-opacity').textContent=currentOpacity+'%';
+$('slider-size').oninput=()=>{ currentSize=+$('slider-size').value; $('val-size').textContent=currentSize; saveSettings(); };
+$('slider-opacity').oninput=()=>{ currentOpacity=+$('slider-opacity').value; $('val-opacity').textContent=currentOpacity+'%'; saveSettings(); };
+
+// ===== EDITOR =====
+function openEditor(id){
+  currentPhotoId=id; selectedMarkerId=null; undoStack=[];
+  editorZoom=1; $('editor-canvas-wrap').style.transform='';
+  const photo=photos.find(p=>p.id===id);
+  $('editor-filename').textContent=photo.name;
+  $('editor-img').onload=()=>{ imgNaturalW=$('editor-img').naturalWidth; imgNaturalH=$('editor-img').naturalHeight; renderMarkers(); };
+  $('editor-img').src=photo.url;
+  const maxN=photo.markers.reduce((m,mk)=>{ const n=parseInt(mk.label); return isNaN(n)?m:Math.max(m,n); },0);
+  $('label-input').value=String(maxN+1);
+  setMode('add'); showView('editor'); buildMobileColorStrip();
 }
+$('btn-back').onclick=()=>{ showView('gallery'); renderGallery(); };
+$('btn-undo').onclick=doUndo;
 
-function openEditor(id) {
-  currentPhotoId = id; selectedMarkerId = null;
-  var photo = photos.find(function(p){ return p.id === id; });
-  $('editor-filename').textContent = photo.name;
-  $('editor-img').onload = function(){ imgNaturalW = $('editor-img').naturalWidth; imgNaturalH = $('editor-img').naturalHeight; renderMarkers(); };
-  $('editor-img').src = photo.url;
-  var maxN = photo.markers.reduce(function(m,mk){ var n=parseInt(mk.label); return isNaN(n)?m:Math.max(m,n); }, 0);
-  $('label-input').value = String(maxN + 1);
-  setMode('add');
-  updateNavButtons(); /* ★ナビゲーション更新 */
-  showView('editor');
+function setMode(m){
+  currentMode=m;
+  $('btn-mode-add').classList.toggle('active',m==='add');
+  $('btn-mode-select').classList.toggle('active',m==='select');
+  $('editor-canvas-wrap').style.cursor=m==='add'?'crosshair':'default';
+  if(m==='select'){ selectedMarkerId=null; renderMarkers(); }
+  syncMobileModeUI();
 }
+$('btn-mode-add').onclick=()=>setMode('add');
+$('btn-mode-select').onclick=()=>setMode('select');
 
-$('btn-back').onclick = function(){ showView('gallery'); renderGallery(); };
-
-/* ★前へボタン */
-$('btn-prev').onclick = function() {
-  var idx = photos.findIndex(function(p){ return p.id === currentPhotoId; });
-  if (idx > 0) openEditor(photos[idx - 1].id);
-};
-
-/* ★次へボタン */
-$('btn-next').onclick = function() {
-  var idx = photos.findIndex(function(p){ return p.id === currentPhotoId; });
-  if (idx < photos.length - 1) openEditor(photos[idx + 1].id);
-};
-
-function setMode(m){ currentMode=m; $('btn-mode-add').classList.toggle('active',m==='add'); $('btn-mode-select').classList.toggle('active',m==='select'); $('editor-canvas-wrap').style.cursor=m==='add'?'crosshair':'default'; if(m==='select'){selectedMarkerId=null;renderMarkers();} }
-$('btn-mode-add').onclick    = function(){ setMode('add'); };
-$('btn-mode-select').onclick = function(){ setMode('select'); };
-
-function addMarker(cx,cy) {
-  saveUndo();
-  var rect=$('editor-img').getBoundingClientRect();
-  var x=(cx-rect.left)*(imgNaturalW/rect.width), y=(cy-rect.top)*(imgNaturalH/rect.height);
-  var lbl=$('label-input').value.trim()||'1';
-  var photo=photos.find(function(p){ return p.id===currentPhotoId; });
-  var mk={id:uid(),x:x,y:y,label:lbl,color:currentColor,showLabel:currentShowLabel,size:currentSize,opacity:currentOpacity};
+function addMarker(cx,cy){
+  const rect=$('editor-img').getBoundingClientRect();
+  const x=(cx-rect.left)*(imgNaturalW/rect.width), y=(cy-rect.top)*(imgNaturalH/rect.height);
+  const lbl=$('label-input').value.trim()||'1';
+  const photo=photos.find(p=>p.id===currentPhotoId);
+  pushUndo();
+  const mk={id:uid(),x,y,label:lbl,color:currentColor,showLabel:currentShowLabel,size:currentSize,opacity:currentOpacity};
   photo.markers.push(mk);
-  var n=parseInt(lbl); if(!isNaN(n)) $('label-input').value=String(n+1);
-  selectedMarkerId=mk.id; renderMarkers();
+  const n=parseInt(lbl); if(!isNaN(n)) $('label-input').value=String(n+1);
+  selectedMarkerId=mk.id; renderMarkers(); autoSave();
 }
-$('editor-canvas-wrap').addEventListener('click', function(e){ if(currentMode!=='add'||e.target.closest('.marker-dot')||e.target.closest('.prop-panel')) return; addMarker(e.clientX,e.clientY); });
-$('editor-canvas-wrap').addEventListener('touchend', function(e){ if(currentMode!=='add'||e.target.closest('.marker-dot')||e.target.closest('.prop-panel')) return; e.preventDefault(); var t=e.changedTouches[0]; addMarker(t.clientX,t.clientY); },{passive:false});
-$('editor-canvas-wrap').addEventListener('click', function(e){ if(currentMode!=='select') return; if(!e.target.closest('.marker-dot')&&!e.target.closest('.prop-panel')){selectedMarkerId=null;renderMarkers();} });
+$('editor-canvas-wrap').addEventListener('click',e=>{
+  if(currentMode!=='add'||isDragging||e.target.closest('.marker-dot')||e.target.closest('.prop-panel')) return;
+  addMarker(e.clientX,e.clientY);
+});
+$('editor-canvas-wrap').addEventListener('touchend',e=>{
+  if(currentMode!=='add'||isDragging||e.target.closest('.marker-dot')||e.target.closest('.prop-panel')) return;
+  e.preventDefault(); const t=e.changedTouches[0]; addMarker(t.clientX,t.clientY);
+},{passive:false});
+$('editor-canvas-wrap').addEventListener('click',e=>{
+  if(currentMode!=='select') return;
+  if(!e.target.closest('.marker-dot')&&!e.target.closest('.prop-panel')){ selectedMarkerId=null; renderMarkers(); }
+});
 
-function renderMarkers() {
-  var photo=photos.find(function(p){ return p.id===currentPhotoId; }); if(!photo) return;
+// ===== PINCH ZOOM =====
+let pinchStartDist=0, pinchStartZoom=1, zoomTimer=null;
+function setEditorZoom(z){
+  editorZoom=Math.max(0.5,Math.min(5,z));
+  const wrap=$('editor-canvas-wrap'); wrap.style.transformOrigin='top center';
+  wrap.style.transform=editorZoom===1?'':'scale('+editorZoom+')';
+  const badge=$('zoom-badge');
+  if(badge){ badge.textContent=Math.round(editorZoom*100)+'%'; badge.classList.add('show'); clearTimeout(zoomTimer); zoomTimer=setTimeout(()=>badge.classList.remove('show'),1500); }
+}
+$('editor-scroll').addEventListener('touchstart',e=>{
+  if(e.touches.length===2){ e.preventDefault(); pinchStartDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); pinchStartZoom=editorZoom; }
+},{passive:false});
+$('editor-scroll').addEventListener('touchmove',e=>{
+  if(e.touches.length!==2) return; e.preventDefault();
+  setEditorZoom(pinchStartZoom*Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)/pinchStartDist); renderMarkers();
+},{passive:false});
+$('editor-scroll').addEventListener('wheel',e=>{ if(!e.ctrlKey) return; e.preventDefault(); setEditorZoom(editorZoom*(e.deltaY<0?1.1:0.9)); renderMarkers(); },{passive:false});
+
+// ===== RENDER MARKERS =====
+let draggingMkId=null, dragImgRect=null, dragMkStartX=0, dragMkStartY=0, dragClientStartX=0, dragClientStartY=0;
+
+function renderMarkers(){
+  const photo=photos.find(p=>p.id===currentPhotoId); if(!photo) return;
   $('marker-layer').innerHTML='';
-  $('marker-count-badge').textContent='マーカー: '+photo.markers.length+'個';
-  var rect=$('editor-img').getBoundingClientRect();
-  var dW=rect.width||$('editor-img').offsetWidth, dH=rect.height||$('editor-img').offsetHeight;
-  var sX=imgNaturalW>0?dW/imgNaturalW:1, sY=imgNaturalH>0?dH/imgNaturalH:1, base=Math.min(dW,dH);
-  photo.markers.forEach(function(mk){
-    var sel=mk.id===selectedMarkerId;
-    var sp=Math.max(16,((mk.size!=null?mk.size:50)/100)*base*0.14), fs=Math.max(9,sp*0.42), op=(mk.opacity!=null?mk.opacity:100)/100;
-    var showLbl=mk.showLabel!==false;
-    var dot=document.createElement('div'); dot.className='marker-dot'+(sel?' selected':'');
-    dot.style.cssText='left:'+mk.x*sX+'px;top:'+mk.y*sY+'px;width:'+sp+'px;height:'+sp+'px;background:'+mk.color+';font-size:'+fs+'px;opacity:'+op+';box-shadow:'+(sel?'0 0 0 3px '+mk.color+',0 4px 16px rgba(0,0,0,0.5)':'0 2px 8px rgba(0,0,0,0.35)')+';';
+  $('marker-count-badge').innerHTML='マーカー: <span class="cn">'+photo.markers.length+'</span>個';
+  const rect=$('editor-img').getBoundingClientRect();
+  const dW=rect.width||$('editor-img').offsetWidth, dH=rect.height||$('editor-img').offsetHeight;
+  const sX=imgNaturalW>0?dW/imgNaturalW:1, sY=imgNaturalH>0?dH/imgNaturalH:1;
+  const base=Math.min(dW,dH);
+
+  photo.markers.forEach(mk=>{
+    const sel=mk.id===selectedMarkerId;
+    const sp=Math.max(16,((mk.size??50)/100)*base*0.14), fs=Math.max(9,sp*0.42), op=(mk.opacity??100)/100;
+    const showLbl=mk.showLabel!==false;
+    const dot=document.createElement('div'); dot.className='marker-dot'+(sel?' selected':'');
+    dot.style.cssText='left:'+(mk.x*sX)+'px;top:'+(mk.y*sY)+'px;width:'+sp+'px;height:'+sp+'px;background:'+mk.color+';font-size:'+fs+'px;opacity:'+op+';box-shadow:'+(sel?'0 0 0 3px '+mk.color+',0 4px 16px rgba(0,0,0,0.5)':'0 2px 8px rgba(0,0,0,0.35)')+';';
+    if(currentMode==='select') dot.style.cursor='grab';
     dot.textContent=showLbl?mk.label:'';
-    if(sel){
-      var db=document.createElement('div'); db.className='marker-del-btn'; db.textContent='×'; db.style.opacity='1';
-      db.onclick=function(e){ e.stopPropagation(); deleteMarker(mk.id); }; dot.appendChild(db);
-    }
-    // 選択モードでドラッグ移動
-    dot.addEventListener('pointerdown', function(e){
-      if(currentMode!=='select') return;
-      e.stopPropagation();
-      dot.setPointerCapture(e.pointerId);
-      dot._ds={x:e.clientX,y:e.clientY,ox:mk.x,oy:mk.y,moved:false,undoSaved:false};
-      selectedMarkerId=mk.id;
+
+    if(sel){ const db=document.createElement('div'); db.className='marker-del-btn'; db.textContent='×'; db.onclick=e=>{e.stopPropagation();deleteMarker(mk.id);}; dot.appendChild(db); }
+
+    dot.onclick=e=>{ e.stopPropagation(); if(isDragging){isDragging=false;return;} if(currentMode==='add') return; selectedMarkerId=selectedMarkerId===mk.id?null:mk.id; renderMarkers(); };
+
+    dot.addEventListener('pointerdown',e=>{
+      if(currentMode!=='select'||e.target.closest('.marker-del-btn')) return;
+      e.stopPropagation(); e.preventDefault();
+      draggingMkId=mk.id; isDragging=false;
+      dragImgRect=$('editor-img').getBoundingClientRect();
+      dragMkStartX=mk.x; dragMkStartY=mk.y; dragClientStartX=e.clientX; dragClientStartY=e.clientY;
+      dot.setPointerCapture(e.pointerId); dot.style.cursor='grabbing';
     });
-    dot.addEventListener('pointermove', function(e){
-      if(!dot._ds) return;
-      var dx=e.clientX-dot._ds.x, dy=e.clientY-dot._ds.y;
-      if(!dot._ds.moved&&(Math.abs(dx)>4||Math.abs(dy)>4)){ dot._ds.moved=true; if(!dot._ds.undoSaved){ saveUndo(); dot._ds.undoSaved=true; } }
-      if(!dot._ds.moved) return;
-      var p2=photos.find(function(p){ return p.id===currentPhotoId; });
-      var m2=p2&&p2.markers.find(function(m){ return m.id===mk.id; });
-      if(m2){ m2.x=dot._ds.ox+dx/sX; m2.y=dot._ds.oy+dy/sY; }
-      dot.style.left=(dot._ds.ox+dx/sX)*sX+'px';
-      dot.style.top=(dot._ds.oy+dy/sY)*sY+'px';
+    dot.addEventListener('pointermove',e=>{
+      if(draggingMkId!==mk.id) return;
+      const dx=e.clientX-dragClientStartX, dy=e.clientY-dragClientStartY;
+      if(!isDragging&&Math.hypot(dx,dy)>4){ pushUndo(); isDragging=true; }
+      if(!isDragging) return;
+      mk.x=Math.max(0,Math.min(imgNaturalW,dragMkStartX+dx*(imgNaturalW/dragImgRect.width)));
+      mk.y=Math.max(0,Math.min(imgNaturalH,dragMkStartY+dy*(imgNaturalH/dragImgRect.height)));
+      dot.style.left=(mk.x*(dragImgRect.width/imgNaturalW))+'px';
+      dot.style.top=(mk.y*(dragImgRect.height/imgNaturalH))+'px';
     });
-    dot.addEventListener('pointerup', function(e){
-      if(!dot._ds) return;
-      var moved=dot._ds.moved; dot._ds=null;
-      if(moved){ _markerDragMoved=true; renderMarkers(); }
-    });
-    dot.onclick=function(e){
-      e.stopPropagation();
-      if(currentMode==='add') return;
-      if(_markerDragMoved){ _markerDragMoved=false; return; }
-      selectedMarkerId=selectedMarkerId===mk.id?null:mk.id; renderMarkers();
-    };
+    dot.addEventListener('pointerup',e=>{ if(draggingMkId!==mk.id) return; draggingMkId=null; dot.style.cursor='grab'; if(isDragging){ isDragging=false; renderMarkers(); autoSave(); } });
+
     $('marker-layer').appendChild(dot);
+
     if(sel){
-      var panel=document.createElement('div'); panel.className='prop-panel';
-      var leftPx=mk.x*sX, topPx=mk.y*sY;
-      panel.style.left=leftPx+'px'; panel.style.top=(topPx+sp/2+10)+'px';
-      panel.innerHTML=
-        '<div class="prop-row"><span class="lbl">サイズ</span><input type="range" min="20" max="120" step="5" value="'+mk.size+'" data-prop="size"><span class="vl" id="pp-size">'+mk.size+'</span></div>'+
-        '<div class="prop-row"><span class="lbl">透明度</span><input type="range" min="10" max="100" step="5" value="'+mk.opacity+'" data-prop="opacity"><span class="vl" id="pp-opacity">'+mk.opacity+'%</span></div>'+
-        '<div class="prop-row"><span class="lbl">番号表示</span><input type="checkbox" '+(showLbl?'checked':'')+' data-prop="showLabel"></div>'+
-        '<div class="prop-row"><span class="lbl">引き出し線</span><input type="checkbox" '+(mk.leader?'checked':'')+' data-prop="leader"></div>'+
-        '<div class="prop-row" style="flex-wrap:wrap;gap:5px;">'+ COLORS.map(function(c){ return '<div class="color-swatch'+(c===mk.color?' active':'')+'" style="background:'+c+';--c:'+c+';" data-prop="color" data-val="'+c+'"></div>'; }).join('')+'</div>';
-      panel.querySelectorAll('input[type=range]').forEach(function(inp){
-        inp.oninput=function(){
-          var photo2=photos.find(function(p){ return p.id===currentPhotoId; });
-          var mk2=photo2&&photo2.markers.find(function(m){ return m.id===mk.id; });
-          if(!mk2) return;
-          mk2[inp.dataset.prop]=+inp.value;
-          if(inp.dataset.prop==='size'){
-            document.getElementById('pp-size').textContent=inp.value;
-            // ドットサイズだけ直接更新（ちらつき防止）
-            var base2=Math.min($('editor-img').offsetWidth,$('editor-img').offsetHeight);
-            var sp2=Math.max(16,(mk2.size/100)*base2*0.14);
-            dot.style.width=sp2+'px'; dot.style.height=sp2+'px';
-            dot.style.fontSize=Math.max(9,sp2*0.42)+'px';
-          }
-          if(inp.dataset.prop==='opacity'){
-            document.getElementById('pp-opacity').textContent=inp.value+'%';
-            dot.style.opacity=mk2.opacity/100;
-          }
-        };
-        // スライダーを離したときだけ完全再描画（パネル位置を正確に更新）
-        inp.onchange=function(){ renderMarkers(); };
-      });
-      panel.querySelector('[data-prop=showLabel]').onchange=function(){
-        var photo2=photos.find(function(p){ return p.id===currentPhotoId; });
-        var mk2=photo2.markers.find(function(m){ return m.id===mk.id; });
-        if(mk2) mk2.showLabel=this.checked; renderMarkers();
-      };
-      panel.querySelector('[data-prop=leader]').onchange=function(){
-        saveUndo();
-        var photo2=photos.find(function(p){ return p.id===currentPhotoId; });
-        var mk2=photo2.markers.find(function(m){ return m.id===mk.id; });
-        if(!mk2) return;
-        if(this.checked){
-          // デフォルト位置: マーカーの右上80px・上60px（画像座標に変換）
-          mk2.leader={ x: mk.x + 80/sX, y: mk.y - 60/sY };
-        } else {
-          mk2.leader=null;
-        }
-        renderMarkers();
-      };
-      panel.querySelectorAll('[data-prop=color]').forEach(function(sw){
-        sw.onclick=function(e){
-          e.stopPropagation();
-          var photo2=photos.find(function(p){ return p.id===currentPhotoId; });
-          var mk2=photo2.markers.find(function(m){ return m.id===mk.id; });
-          if(mk2) mk2.color=sw.dataset.val; renderMarkers();
-        };
-      });
+      const panel=document.createElement('div'); panel.className='prop-panel';
+      const px=mk.x*sX, py=mk.y*sY, below=py<dH*0.72;
+      panel.style.left=px+'px';
+      if(below) panel.style.top=(py+sp/2+10)+'px'; else panel.style.bottom=(dH-py+sp/2+10)+'px';
+      panel.onclick=e=>e.stopPropagation();
+      const ph=document.createElement('div'); ph.className='prop-panel-head'; ph.textContent='マーカー設定'; panel.appendChild(ph);
+      panel.appendChild(makePropSlider('サイズ', mk.size??50, 20,120,5,v=>{mk.size=v;autoSave();renderMarkers();}));
+      panel.appendChild(makePropSlider('透明度',mk.opacity??100,10,100,5,v=>{mk.opacity=v;autoSave();renderMarkers();},v=>v+'%'));
+      const lr=document.createElement('div'); lr.className='prop-row';
+      const ck=document.createElement('input'); ck.type='checkbox'; ck.checked=showLbl; ck.onchange=()=>{mk.showLabel=ck.checked;autoSave();renderMarkers();};
+      const lt=document.createElement('span'); lt.textContent='番号を表示する';
+      lr.appendChild(ck); lr.appendChild(lt); panel.appendChild(lr);
       $('marker-layer').appendChild(panel);
-      // クランプ: パネルが画面・レイヤー外にはみ出さないよう位置を補正
-      (function(){
-        var pw=panel.offsetWidth, ph=panel.offsetHeight;
-        var lw=$('marker-layer').offsetWidth;
-        var cl=leftPx-pw/2; // マーカー中央揃え
-        cl=Math.max(4, Math.min(cl, lw-pw-4));
-        var ct=topPx+sp/2+10;
-        var layerTop=$('marker-layer').getBoundingClientRect().top;
-        if(layerTop+ct+ph>window.innerHeight-8){ ct=Math.max(0, topPx-sp/2-10-ph); }
-        panel.style.left=cl+'px'; panel.style.top=ct+'px';
-      })();
+      // クランプ: パネルが画像レイヤー外にはみ出さないよう位置補正
+      const pw=panel.offsetWidth||214, lw=$('marker-layer').offsetWidth;
+      let cl=px-pw/2;
+      cl=Math.max(4, Math.min(cl, lw-pw-4));
+      panel.style.left=cl+'px';
     }
-    // 引き出し線エンドポイントハンドル（リーダーがあるマーカー全てに表示）
-    if(mk.leader){
-      var handle=document.createElement('div'); handle.className='leader-handle';
-      handle.style.left=mk.leader.x*sX+'px'; handle.style.top=mk.leader.y*sY+'px';
-      handle.style.background=mk.color;
-      handle.addEventListener('pointerdown',function(e){
-        e.stopPropagation(); handle.setPointerCapture(e.pointerId);
-        saveUndo();
-        handle._ds={x:e.clientX,y:e.clientY,ox:mk.leader.x,oy:mk.leader.y};
-      });
-      handle.addEventListener('pointermove',function(e){
-        if(!handle._ds) return;
-        var ddx=e.clientX-handle._ds.x, ddy=e.clientY-handle._ds.y;
-        var p2=photos.find(function(p){ return p.id===currentPhotoId; });
-        var m2=p2&&p2.markers.find(function(m){ return m.id===mk.id; });
-        if(m2&&m2.leader){ m2.leader.x=handle._ds.ox+ddx/sX; m2.leader.y=handle._ds.oy+ddy/sY; }
-        handle.style.left=(handle._ds.ox+ddx/sX)*sX+'px';
-        handle.style.top=(handle._ds.oy+ddy/sY)*sY+'px';
-        renderLeaderLines();
-      });
-      handle.addEventListener('pointerup',function(e){
-        if(!handle._ds) return; handle._ds=null; renderMarkers();
-      });
-      $('marker-layer').appendChild(handle);
-    }
-  });
-  renderLeaderLines();
-}
-
-/* ── 引き出し線 SVG 描画 ── */
-function renderLeaderLines(){
-  var svg=$('leader-svg'); if(!svg) return;
-  while(svg.firstChild) svg.removeChild(svg.firstChild);
-  var photo=photos.find(function(p){ return p.id===currentPhotoId; }); if(!photo) return;
-  var rect=$('editor-img').getBoundingClientRect();
-  var dW=rect.width||$('editor-img').offsetWidth, dH=rect.height||$('editor-img').offsetHeight;
-  var sX=imgNaturalW>0?dW/imgNaturalW:1, sY=imgNaturalH>0?dH/imgNaturalH:1;
-  var base=Math.min(dW,dH);
-  photo.markers.forEach(function(mk){
-    if(!mk.leader) return;
-    var sp=Math.max(16,((mk.size!=null?mk.size:50)/100)*base*0.14);
-    var op=(mk.opacity!=null?mk.opacity:100)/100;
-    var mx=mk.x*sX, my=mk.y*sY;
-    var lx=mk.leader.x*sX, ly=mk.leader.y*sY;
-    var dx=lx-mx, dy=ly-my, len=Math.sqrt(dx*dx+dy*dy);
-    if(len<2) return;
-    var ux=dx/len, uy=dy/len, px=-uy, py=ux;
-    var ah=Math.max(8,sp*0.5), aw=Math.max(4,sp*0.25);
-    var sx2=mx+ux*(sp/2+2), sy2=my+uy*(sp/2+2);
-    var ex=lx-ux*ah, ey=ly-uy*ah;
-    var NS='http://www.w3.org/2000/svg';
-    var line=document.createElementNS(NS,'line');
-    line.setAttribute('x1',sx2); line.setAttribute('y1',sy2);
-    line.setAttribute('x2',ex);  line.setAttribute('y2',ey);
-    line.setAttribute('stroke',mk.color); line.setAttribute('stroke-width',Math.max(2,sp*0.07).toFixed(1));
-    line.setAttribute('stroke-linecap','round'); line.setAttribute('opacity',op);
-    svg.appendChild(line);
-    var poly=document.createElementNS(NS,'polygon');
-    poly.setAttribute('points',lx+','+ly+' '+(ex-px*aw)+','+(ey-py*aw)+' '+(ex+px*aw)+','+(ey+py*aw));
-    poly.setAttribute('fill',mk.color); poly.setAttribute('opacity',op);
-    svg.appendChild(poly);
   });
 }
 
+function makePropSlider(label,init,min,max,step,onChange,fmt){
+  const row=document.createElement('div'); row.className='prop-row';
+  const lb=document.createElement('span'); lb.className='lbl'; lb.textContent=label;
+  const sl=document.createElement('input'); sl.type='range'; sl.min=min; sl.max=max; sl.step=step; sl.value=init;
+  const vl=document.createElement('span'); vl.className='vl'; vl.textContent=fmt?fmt(init):init;
+  sl.oninput=()=>{ const v=+sl.value; vl.textContent=fmt?fmt(v):v; onChange(v); };
+  row.appendChild(lb); row.appendChild(sl); row.appendChild(vl); return row;
+}
 function deleteMarker(id){
-  saveUndo();
-  var photo=photos.find(function(p){ return p.id===currentPhotoId; });
-  if(photo){ photo.markers=photo.markers.filter(function(m){ return m.id!==id; }); }
-  selectedMarkerId=null; renderMarkers();
+  pushUndo();
+  const photo=photos.find(p=>p.id===currentPhotoId);
+  photo.markers=photo.markers.filter(m=>m.id!==id);
+  selectedMarkerId=null; renderMarkers(); autoSave();
 }
+window.addEventListener('resize',()=>{ if(currentPhotoId) renderMarkers(); });
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'){ e.preventDefault(); doUndo(); }
+  if(e.key==='Escape'&&currentMode==='select'){ selectedMarkerId=null; renderMarkers(); }
+});
 
-/* ── エディタのDropbox・DLボタン ── */
-$('btn-dbx-save').onclick = function(){
-  if(!currentPhotoId){ showToast('写真が選択されていません','err'); return; }
-  openDbxModal({type:'single', id:currentPhotoId});
-};
-$('btn-download').onclick = function(){
-  if(!currentPhotoId) return;
-  var photo=photos.find(function(p){ return p.id===currentPhotoId; });
-  renderToCanvas(photo).then(function(canvas){
-    var a=document.createElement('a');
-    a.href=canvas.toDataURL('image/jpeg',0.95);
-    a.download='marked_'+photo.name.replace(/\.[^.]+$/,'')+'.jpg';
-    a.click();
-  });
-};
-
-/* ── Canvas描画（マーカー合成） ── */
-function renderToCanvas(photo) {
-  return new Promise(function(resolve, reject) {
-    var img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = function() {
-      var canvas = document.createElement('canvas');
-      canvas.width  = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      var base = Math.min(img.naturalWidth, img.naturalHeight);
-      photo.markers.forEach(function(mk) {
-        var sp  = Math.max(16, ((mk.size != null ? mk.size : 50) / 100) * base * 0.14);
-        var fs  = Math.max(9, sp * 0.42);
-        var op  = (mk.opacity != null ? mk.opacity : 100) / 100;
-        var showLbl = mk.showLabel !== false;
-        // 引き出し線を先に描画（スタンプが上に重なる）
-        if(mk.leader){
-          var lx=mk.leader.x, ly=mk.leader.y;
-          var ddx=lx-mk.x, ddy=ly-mk.y, len=Math.sqrt(ddx*ddx+ddy*ddy);
-          if(len>2){
-            var ux=ddx/len, uy=ddy/len, px=-uy, py=ux;
-            var ah=Math.max(16,sp*0.5), aw=Math.max(8,sp*0.25);
-            var lw=Math.max(2,sp*0.07);
-            var sx2=mk.x+ux*(sp/2+2), sy2=mk.y+uy*(sp/2+2);
-            var ex=lx-ux*ah, ey=ly-uy*ah;
-            ctx.save(); ctx.globalAlpha=op;
-            ctx.strokeStyle=mk.color; ctx.lineWidth=lw; ctx.lineCap='round';
-            ctx.beginPath(); ctx.moveTo(sx2,sy2); ctx.lineTo(ex,ey); ctx.stroke();
-            ctx.fillStyle=mk.color;
-            ctx.beginPath();
-            ctx.moveTo(lx,ly);
-            ctx.lineTo(ex-px*aw, ey-py*aw);
-            ctx.lineTo(ex+px*aw, ey+py*aw);
-            ctx.closePath(); ctx.fill();
-            ctx.restore();
-          }
-        }
-        ctx.save();
-        ctx.globalAlpha = op;
-        ctx.beginPath();
-        ctx.arc(mk.x, mk.y, sp / 2, 0, Math.PI * 2);
-        ctx.fillStyle = mk.color;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(0,0,0,0.4)';
-        ctx.lineWidth   = 2.5;
-        ctx.stroke();
-        if (showLbl && mk.label) {
-          ctx.globalAlpha  = op;
-          ctx.fillStyle    = '#fff';
-          ctx.font         = 'bold ' + fs + 'px "DM Mono", monospace';
-          ctx.textAlign    = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.shadowColor  = 'rgba(0,0,0,0.8)';
-          ctx.shadowBlur   = 4;
-          ctx.fillText(mk.label, mk.x, mk.y);
-          ctx.shadowBlur   = 0;
-        }
+// ===== RENDER TO CANVAS =====
+function renderToCanvas(photo){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      const cv=document.createElement('canvas'); cv.width=img.naturalWidth; cv.height=img.naturalHeight;
+      const ctx=cv.getContext('2d'); ctx.drawImage(img,0,0);
+      const base=Math.min(img.naturalWidth,img.naturalHeight);
+      photo.markers.forEach(mk=>{
+        const ms=Math.max(16,((mk.size??50)/100)*base*0.14), op=(mk.opacity??100)/100, showLbl=mk.showLabel!==false;
+        ctx.save(); ctx.globalAlpha=op;
+        ctx.beginPath(); ctx.arc(mk.x,mk.y,ms/2,0,Math.PI*2); ctx.fillStyle=mk.color; ctx.fill();
+        ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=ms*0.07; ctx.stroke();
+        if(showLbl){ ctx.globalAlpha=Math.max(op,0.9); ctx.fillStyle='#fff'; ctx.font='bold '+(ms*0.44)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.shadowColor='rgba(0,0,0,0.7)'; ctx.shadowBlur=ms*0.15; ctx.fillText(mk.label,mk.x,mk.y); }
         ctx.restore();
       });
-      resolve(canvas);
+      resolve(cv);
     };
-    img.onerror = function() { reject(new Error('画像の読み込みに失敗しました')); };
-    img.src = photo.url;
+    img.src=photo.url;
   });
 }
 
-/* ── 一括ダウンロード（ZIP） ── */
-async function bulkDownload() {
-  if (!selectedPhotoIds.size) return;
-  var targets = photos.filter(function(p){ return selectedPhotoIds.has(p.id); });
-  var zip = new JSZip();
-  showProgress('画像を処理中… 0 / ' + targets.length, 0);
-  for (var i = 0; i < targets.length; i++) {
-    showProgress('画像を処理中… ' + (i+1) + ' / ' + targets.length, (i+1) / targets.length * 80);
-    var canvas = await renderToCanvas(targets[i]);
-    var blob   = await canvasToBlob(canvas);
-    zip.file('marked_' + targets[i].name.replace(/\.[^.]+$/, '') + '.jpg', blob);
-  }
-  showProgress('ZIPを生成中…', 90);
-  var content = await zip.generateAsync({type:'blob', compression:'DEFLATE'}, function(meta){
-    showProgress('ZIPを生成中… ' + Math.round(meta.percent) + '%', 80 + meta.percent * 0.2);
+async function downloadPhoto(photo){
+  const cv=await renderToCanvas(photo);
+  const a=document.createElement('a'); a.href=cv.toDataURL('image/jpeg',0.95); a.download='marked_'+photo.name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+async function bulkDownload(){
+  const targets=photos.filter(p=>selectedPhotoIds.has(p.id)); if(!targets.length) return;
+  if(targets.length===1){ await downloadPhoto(targets[0]); return; }
+  const zip=new JSZip();
+  for(const photo of targets){ const cv=await renderToCanvas(photo); zip.file('marked_'+photo.name.replace(/\.[^.]+$/,'')+'.jpg',cv.toDataURL('image/jpeg',0.95).split(',')[1],{base64:true}); }
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='marked_photos.zip';
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); document.body.removeChild(a); },1000);
+}
+$('btn-download').onclick=async()=>{ await downloadPhoto(photos.find(p=>p.id===currentPhotoId)); };
+$('btn-dbx-save').onclick=()=>openDbxModal({type:'single',id:currentPhotoId});
+
+let toastTimer;
+function showToast(msg,type='ok'){ const t=$('toast'); t.textContent=msg; t.className='show '+type; clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className='',3500); }
+
+// ===== INIT =====
+if(DBX_ENABLED){ $('setup-notice').classList.add('hidden'); dbxHandleCallback(); }
+updateDbxBadge(); renderGallery(); checkAutoSave();
+try { const s=JSON.parse(localStorage.getItem('rmk_settings')||'{}'); if(s.projectName&&$('project-name-input')) $('project-name-input').value=s.projectName; } catch(e){}
+const pnInput=$('project-name-input'); if(pnInput) pnInput.addEventListener('input',saveSettings);
+
+// ===== MOBILE =====
+function buildMobileColorStrip(){
+  const strip=$('mob-color-strip'); if(!strip) return;
+  strip.innerHTML='';
+  COLORS.forEach(c=>{
+    const dot=document.createElement('div'); dot.className='mob-color-dot'+(c===currentColor?' active':''); dot.style.background=c; dot.dataset.color=c;
+    dot.onclick=()=>{ currentColor=c; swatchWrap.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('active',s.dataset.color===c)); strip.querySelectorAll('.mob-color-dot').forEach(d=>d.classList.toggle('active',d.dataset.color===c)); saveSettings(); };
+    strip.appendChild(dot);
   });
-  hideProgress();
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(content);
-  a.download = 'haikin_marked.zip';
-  a.click();
 }
-
-/* ── トースト ── */
-var toastTimer = null;
-function showToast(msg, type) {
-  var t = $('toast');
-  t.textContent = msg;
-  t.className = 'show ' + (type || 'inf');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(function(){ t.className = ''; }, 3000);
-}
-
-/* ── Undo ── */
-function saveUndo(){
-  if(!currentPhotoId) return;
-  var photo=photos.find(function(p){ return p.id===currentPhotoId; });
-  if(!photo) return;
-  _undoStack.push({id:currentPhotoId, markers:JSON.parse(JSON.stringify(photo.markers))});
-  if(_undoStack.length>50) _undoStack.shift(); // 最大50ステップ
-}
-function undoMarker(){
-  // 現在の写真のエントリを末尾から探す
-  for(var i=_undoStack.length-1;i>=0;i--){
-    if(_undoStack[i].id===currentPhotoId){
-      var snap=_undoStack.splice(i,1)[0];
-      var photo=photos.find(function(p){ return p.id===currentPhotoId; });
-      if(photo){ photo.markers=snap.markers; selectedMarkerId=null; renderMarkers(); showToast('元に戻しました','inf'); }
-      return;
-    }
-  }
-  showToast('これ以上戻れません','inf');
-}
-
-/* ── リロード時の警告 ── */
-window.addEventListener('beforeunload', function(e){
-  var hasData = photos.some(function(p){ return p.markers.length>0; });
-  if(hasData){ e.preventDefault(); e.returnValue=''; }
-});
-
-/* ── 初期化 ── */
-updateDbxBadge();
-dbxHandleCallback();
-
-/* ── リサイズ時にマーカーを再描画 ── */
-window.addEventListener('resize', function(){ if(currentPhotoId) renderMarkers(); });
-
-/* ── キーボードショートカット ── */
-document.addEventListener('keydown', function(e){
-  // input/textarea にフォーカス中は無視
-  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
-  var inEditor = !!currentPhotoId && $('view-editor').classList.contains('active');
-  if(!inEditor) return;
-  // Delete / Backspace → 選択中マーカーを削除
-  if((e.key==='Delete'||e.key==='Backspace') && selectedMarkerId){
-    e.preventDefault(); deleteMarker(selectedMarkerId);
-  }
-  // Escape → 選択解除
-  if(e.key==='Escape'){ selectedMarkerId=null; renderMarkers(); }
-  // Ctrl+Z → Undo（undoStack は Fix8 で追加）
-  if((e.ctrlKey||e.metaKey) && e.key==='z'){ e.preventDefault(); undoMarker(); }
-});
+function syncMobileColors(c){ const strip=$('mob-color-strip'); if(!strip) return; strip.querySelectorAll('.mob-color-dot').forEach(d=>d.classList.toggle('active',d.dataset.color===c)); }
+function mobileSetMode(m){ setMode(m); }
+function syncMobileModeUI(){ const isAdd=currentMode==='add'; const a=$('btn-mob-add'),s=$('btn-mob-select'); if(a) a.classList.toggle('active',isAdd); if(s) s.classList.toggle('active',!isAdd); }
+function toggleMobileToolbar(){ const tb=$('editor-toolbar'),btn=$('btn-toolbar-expand'),bd=$('toolbar-backdrop'); if(tb.classList.contains('mobile-open')){closeMobileToolbar();}else{tb.classList.add('mobile-open');btn.classList.add('active');bd.classList.add('show');} }
+function closeMobileToolbar(){ $('editor-toolbar').classList.remove('mobile-open'); $('btn-toolbar-expand').classList.remove('active'); $('toolbar-backdrop').classList.remove('show'); }
+$('toolbar-backdrop').addEventListener('click',closeMobileToolbar);
 </script>
 </body>
 </html>
