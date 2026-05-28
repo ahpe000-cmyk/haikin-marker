@@ -1123,7 +1123,7 @@ input[type=range]::-moz-range-thumb {
         <div class="upload-title">写真をドロップ<br>またはタップして選択</div>
       </div>
       <div class="upload-sub">複数枚まとめて追加できます</div>
-      <button class="upload-cta" onclick="document.getElementById('file-input').click()">ファイルを選択する</button>
+      <button class="upload-cta" onclick="event.stopPropagation();document.getElementById('file-input').click()">ファイルを選択する</button>
       <div class="upload-fmts">
         <span class="fmt-tag">JPG</span>
         <span class="fmt-tag">PNG</span>
