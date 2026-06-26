@@ -696,6 +696,12 @@ input[type=range]::-moz-range-thumb {
 .prop-row input[type=range] { width: 88px; }
 .prop-row .vl { color: var(--orange); min-width: 34px; text-align: right; font-weight: 700; }
 .prop-row input[type=checkbox] { accent-color: var(--orange); width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
+.prop-row .prop-colors { display: flex; gap: 6px; flex-wrap: wrap; }
+.prop-swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; flex-shrink: 0; transition: transform .1s; }
+.prop-swatch:hover { transform: scale(1.15); }
+.prop-swatch.active { border-color: #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.45); }
+.mode-toggle, .mob-mode-toggle { display: none !important; }
+#editor-canvas-wrap { cursor: crosshair; }
 
 /* ===== TOOLBAR MOBILE HEADER ===== */
 .toolbar-mobile-header {
@@ -1597,18 +1603,15 @@ function addMarker(cx,cy){
   const n=parseInt(lbl); if(!isNaN(n)) $('label-input').value=String(n+1);
   selectedMarkerId=mk.id; renderMarkers(); autoSave();
 }
+// 何もない所をクリック/タップ → 追加。マーカー上やパネル上は対象外。
 $('editor-canvas-wrap').addEventListener('click',e=>{
-  if(currentMode!=='add'||isDragging||e.target.closest('.marker-dot')||e.target.closest('.prop-panel')) return;
+  if(isDragging||e.target.closest('.marker-dot')||e.target.closest('.prop-panel')) return;
   addMarker(e.clientX,e.clientY);
 });
 $('editor-canvas-wrap').addEventListener('touchend',e=>{
-  if(currentMode!=='add'||isDragging||e.target.closest('.marker-dot')||e.target.closest('.prop-panel')) return;
+  if(isDragging||e.target.closest('.marker-dot')||e.target.closest('.prop-panel')) return;
   e.preventDefault(); const t=e.changedTouches[0]; addMarker(t.clientX,t.clientY);
 },{passive:false});
-$('editor-canvas-wrap').addEventListener('click',e=>{
-  if(currentMode!=='select') return;
-  if(!e.target.closest('.marker-dot')&&!e.target.closest('.prop-panel')){ selectedMarkerId=null; renderMarkers(); }
-});
 
 // ===== PINCH ZOOM =====
 let pinchStartDist=0, pinchStartZoom=1, zoomTimer=null;
@@ -1647,15 +1650,15 @@ function renderMarkers(){
     const showLbl=mk.showLabel!==false;
     const dot=document.createElement('div'); dot.className='marker-dot'+(sel?' selected':'');
     dot.style.cssText='left:'+(mk.x*sX)+'px;top:'+(mk.y*sY)+'px;width:'+sp+'px;height:'+sp+'px;background:'+mk.color+';font-size:'+fs+'px;opacity:'+op+';box-shadow:'+(sel?'0 0 0 3px '+mk.color+',0 4px 16px rgba(0,0,0,0.5)':'0 2px 8px rgba(0,0,0,0.35)')+';';
-    if(currentMode==='select') dot.style.cursor='grab';
+    dot.style.cursor='grab';
     dot.textContent=showLbl?mk.label:'';
 
     if(sel){ const db=document.createElement('div'); db.className='marker-del-btn'; db.textContent='×'; db.onclick=e=>{e.stopPropagation();deleteMarker(mk.id);}; dot.appendChild(db); }
 
-    dot.onclick=e=>{ e.stopPropagation(); if(isDragging){isDragging=false;return;} if(currentMode==='add') return; selectedMarkerId=selectedMarkerId===mk.id?null:mk.id; renderMarkers(); };
+    dot.onclick=e=>{ e.stopPropagation(); if(isDragging){isDragging=false;return;} selectedMarkerId=selectedMarkerId===mk.id?null:mk.id; renderMarkers(); };
 
     dot.addEventListener('pointerdown',e=>{
-      if(currentMode!=='select'||e.target.closest('.marker-del-btn')) return;
+      if(e.target.closest('.marker-del-btn')) return;
       e.stopPropagation(); e.preventDefault();
       draggingMkId=mk.id; isDragging=false;
       dragImgRect=$('editor-img').getBoundingClientRect();
@@ -1684,8 +1687,35 @@ function renderMarkers(){
       if(below) panel.style.top=(py+sp/2+10)+'px'; else panel.style.bottom=(dH-py+sp/2+10)+'px';
       panel.onclick=e=>e.stopPropagation();
       const ph=document.createElement('div'); ph.className='prop-panel-head'; ph.textContent='マーカー設定'; panel.appendChild(ph);
-      panel.appendChild(makePropSlider('サイズ', mk.size??50, 20,120,5,v=>{mk.size=v;autoSave();renderMarkers();}));
-      panel.appendChild(makePropSlider('透明度',mk.opacity??100,10,100,5,v=>{mk.opacity=v;autoSave();renderMarkers();},v=>v+'%'));
+      panel.appendChild(makePropSlider('サイズ', mk.size??50, 20,120,5,v=>{
+        mk.size=v;
+        const sp2=Math.max(16,(v/100)*base*0.14), fs2=Math.max(9,sp2*0.42);
+        dot.style.width=sp2+'px'; dot.style.height=sp2+'px'; dot.style.fontSize=fs2+'px';
+        renderLeaderLines(); autoSave();
+      },null,()=>renderMarkers()));
+      panel.appendChild(makePropSlider('透明度',mk.opacity??100,10,100,5,v=>{
+        mk.opacity=v;
+        dot.style.opacity=(v/100);
+        renderLeaderLines(); autoSave();
+      },v=>v+'%',()=>renderMarkers()));
+      // 色
+      const cr=document.createElement('div'); cr.className='prop-row';
+      const clb=document.createElement('span'); clb.className='lbl'; clb.textContent='色';
+      const cw=document.createElement('div'); cw.className='prop-colors';
+      COLORS.forEach(c=>{
+        const sw=document.createElement('button'); sw.type='button';
+        sw.className='prop-swatch'+(mk.color===c?' active':''); sw.style.background=c;
+        sw.onclick=ev=>{
+          ev.stopPropagation(); mk.color=c;
+          dot.style.background=c;
+          dot.style.boxShadow='0 0 0 3px '+c+',0 4px 16px rgba(0,0,0,0.5)';
+          cw.querySelectorAll('.prop-swatch').forEach(s=>s.classList.remove('active'));
+          sw.classList.add('active');
+          renderLeaderLines(); autoSave();
+        };
+        cw.appendChild(sw);
+      });
+      cr.appendChild(clb); cr.appendChild(cw); panel.appendChild(cr);
       const lr=document.createElement('div'); lr.className='prop-row';
       const ck=document.createElement('input'); ck.type='checkbox'; ck.checked=showLbl; ck.onchange=()=>{mk.showLabel=ck.checked;autoSave();renderMarkers();};
       const lt=document.createElement('span'); lt.textContent='番号を表示する';
@@ -1770,12 +1800,15 @@ function renderLeaderLines(){
   });
 }
 
-function makePropSlider(label,init,min,max,step,onChange,fmt){
+function makePropSlider(label,init,min,max,step,onChange,fmt,onCommit){
   const row=document.createElement('div'); row.className='prop-row';
   const lb=document.createElement('span'); lb.className='lbl'; lb.textContent=label;
   const sl=document.createElement('input'); sl.type='range'; sl.min=min; sl.max=max; sl.step=step; sl.value=init;
   const vl=document.createElement('span'); vl.className='vl'; vl.textContent=fmt?fmt(init):init;
+  // ドラッグ中(oninput)は軽量更新のみ。再描画はせず滑らかに動かす。
   sl.oninput=()=>{ const v=+sl.value; vl.textContent=fmt?fmt(v):v; onChange(v); };
+  // 指を離した時(onchange)だけ全体を再同期。
+  if(onCommit) sl.onchange=()=>onCommit(+sl.value);
   row.appendChild(lb); row.appendChild(sl); row.appendChild(vl); return row;
 }
 function deleteMarker(id){
@@ -1787,7 +1820,7 @@ function deleteMarker(id){
 window.addEventListener('resize',()=>{ if(currentPhotoId) renderMarkers(); });
 document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='z'){ e.preventDefault(); doUndo(); }
-  if(e.key==='Escape'&&currentMode==='select'){ selectedMarkerId=null; renderMarkers(); }
+  if(e.key==='Escape'){ selectedMarkerId=null; renderMarkers(); }
 });
 
 // ===== RENDER TO CANVAS =====
