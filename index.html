@@ -649,14 +649,12 @@ input[type=range]::-moz-range-thumb {
 }
 .leader-handle {
   position: absolute;
-  width: 16px; height: 16px;
-  border-radius: 50%;
-  border: 2.5px solid #fff;
-  cursor: grab;
+  width: 30px; height: 30px;
+  cursor: move;
   transform: translate(-50%,-50%);
   z-index: 22;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.55);
   touch-action: none;
+  background: transparent;
 }
 .leader-handle:active { cursor: grabbing; }
 
@@ -1742,7 +1740,6 @@ function renderMarkers(){
     if(mk.leader){
       const handle=document.createElement('div'); handle.className='leader-handle';
       handle.style.left=(mk.leader.x*sX)+'px'; handle.style.top=(mk.leader.y*sY)+'px';
-      handle.style.background=mk.color;
       handle.addEventListener('pointerdown',e=>{
         e.stopPropagation(); handle.setPointerCapture(e.pointerId);
         pushUndo();
