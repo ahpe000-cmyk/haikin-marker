@@ -1324,34 +1324,51 @@ function saveSettings(){
   } catch(e){}
 }
 
-// ===== AUTO-SAVE =====
+// ===== AUTO-SAVE (IndexedDB) =====
+// 写真(base64)はlocalStorage(約5MB上限)に収まらず保存が失敗していたため、
+// 容量の大きいIndexedDBに保存し、リロード・更新でも消えないようにする。
+const IDB_NAME='haikin-marker', IDB_STORE='state', IDB_KEY='photos_v3';
+function idbOpen(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open(IDB_NAME,1);
+    r.onupgradeneeded=()=>{ const db=r.result; if(!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE); };
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  });
+}
+function idbSet(key,val){ return idbOpen().then(db=>new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).put(val,key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); })); }
+function idbGet(key){ return idbOpen().then(db=>new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readonly'); const rq=tx.objectStore(IDB_STORE).get(key); rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error); })); }
+function idbDel(key){ return idbOpen().then(db=>new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).delete(key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); })); }
+
 let autoSaveTimer = null;
 function autoSave(){
   clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(()=>{
-    try { localStorage.setItem('rmk_photos_v2', JSON.stringify(photos)); localStorage.setItem('rmk_save_time', new Date().toISOString()); } catch(e){}
+    idbSet(IDB_KEY, {photos, t:new Date().toISOString()})
+      .then(()=>{ try{ localStorage.setItem('rmk_save_time', new Date().toISOString()); }catch(e){} })
+      .catch(e=>{ console.warn('autoSave failed', e); showToast('保存に失敗しました','err'); });
   }, 1500);
 }
-function checkAutoSave(){
+// 起動時: 保存済みデータがあれば自動で復元(バナーのクリック不要)。
+async function checkAutoSave(){
   try {
-    const saved = localStorage.getItem('rmk_photos_v2'); if(!saved) return;
-    const data = JSON.parse(saved); if(!data||!data.length) return;
-    const t = localStorage.getItem('rmk_save_time');
-    const ts = t ? new Date(t).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
-    const banner=$('restore-banner'); if(banner){ banner.classList.add('show'); const el=$('restore-time'); if(el&&ts) el.textContent=' ('+ts+')'; }
-  } catch(e){}
+    let rec = await idbGet(IDB_KEY);
+    // 旧localStorage保存からの移行(以前の小さい保存データを救済)
+    if(!rec || !rec.photos || !rec.photos.length){
+      const legacy = localStorage.getItem('rmk_photos_v2');
+      if(legacy){ try{ const arr=JSON.parse(legacy); if(arr&&arr.length){ rec={photos:arr,t:localStorage.getItem('rmk_save_time')}; await idbSet(IDB_KEY,rec); localStorage.removeItem('rmk_photos_v2'); } }catch(e){} }
+    }
+    if(rec && rec.photos && rec.photos.length){
+      photos = rec.photos; selectedPhotoIds = new Set();
+      showView('gallery'); renderGallery();
+    }
+  } catch(e){ console.warn('restore failed', e); }
 }
-function confirmRestore(){
-  try {
-    const saved=localStorage.getItem('rmk_photos_v2'); if(!saved) return;
-    photos=JSON.parse(saved); selectedPhotoIds=new Set();
-    const b=$('restore-banner'); if(b) b.classList.remove('show');
-    showView('gallery'); renderGallery(); showToast('データを復元しました','ok');
-  } catch(e){ showToast('復元に失敗しました','err'); }
-}
+// バナーUI(手動復元/破棄)は互換のため残置。自動復元するため通常は使われない。
+function confirmRestore(){ const b=$('restore-banner'); if(b) b.classList.remove('show'); }
 function dismissRestore(){
   const b=$('restore-banner'); if(b) b.classList.remove('show');
-  localStorage.removeItem('rmk_photos_v2'); localStorage.removeItem('rmk_save_time');
+  idbDel(IDB_KEY).catch(()=>{});
+  try{ localStorage.removeItem('rmk_photos_v2'); localStorage.removeItem('rmk_save_time'); }catch(e){}
 }
 
 function getProjectFolder(){
