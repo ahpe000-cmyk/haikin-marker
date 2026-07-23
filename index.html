@@ -1086,7 +1086,7 @@ input[type=range]::-moz-range-thumb {
   <div id="header-actions">
     <div id="dbx-badge" onclick="dbxToggle()">
       <div class="dbx-dot"></div>
-      <span id="dbx-badge-text">Dropbox 未接続</span>
+      <span id="dbx-badge-text">OneDrive 未接続</span>
     </div>
     <button class="btn btn-secondary" id="btn-select-all" style="display:none">全選択</button>
     <input type="file" id="file-input"   accept="image/*" multiple style="display:none">
@@ -1104,12 +1104,13 @@ input[type=range]::-moz-range-thumb {
 
 <!-- SETUP NOTICE -->
 <div id="setup-notice">
-  ⚙️ <b>Dropbox連携の初期設定：</b>
-  HTMLファイルの先頭の <code>DROPBOX_APP_KEY</code> を取得したApp Keyに書き換えてください。<br>
-  手順: <b>①</b> <a href="https://www.dropbox.com/developers/apps" target="_blank" style="color:#5B9EFF">dropbox.com/developers/apps</a> → Create app → Scoped / Full Dropbox →
-  <b>②</b> Permissionsタブで <code>files.content.write</code> にチェック →
-  <b>③</b> SettingsタブのApp keyをコピー →
-  <b>④</b> Redirect URIsにこのHTMLのURLを追加
+  ⚙️ <b>OneDrive連携の初期設定：</b>
+  HTMLファイルの先頭の <code>MS_CLIENT_ID</code> を、Azureで取得したクライアントIDに書き換えてください。<br>
+  手順: <b>①</b> <a href="https://portal.azure.com" target="_blank" style="color:#5B9EFF">portal.azure.com</a> → Microsoft Entra ID → アプリの登録 → 新規登録 →
+  <b>②</b> サポートするアカウント：<code>個人＋任意の組織</code> を選択 →
+  <b>③</b> リダイレクトURI（<code>SPA</code>）にこのページのURLを追加 →
+  <b>④</b> APIのアクセス許可：Microsoft Graph → <code>Files.ReadWrite</code> / <code>offline_access</code> / <code>User.Read</code> →
+  <b>⑤</b> アプリケーション(クライアント)IDをコピー
 </div>
 
 <!-- ========== UPLOAD VIEW ========== -->
@@ -1172,7 +1173,7 @@ input[type=range]::-moz-range-thumb {
   <div id="gallery-actions" class="hidden">
     <span id="gallery-sel-label"></span>
     <button class="btn btn-secondary" id="btn-bulk-dl2">↓ まとめてDL</button>
-    <button class="btn btn-dbx"       id="btn-bulk-dbx">☁ Dropboxに保存</button>
+    <button class="btn btn-dbx"       id="btn-bulk-dbx">☁ OneDriveに保存</button>
   </div>
   <div id="gallery-scroll">
     <div id="gallery-grid"></div>
@@ -1192,7 +1193,7 @@ input[type=range]::-moz-range-thumb {
     </button>
     <span id="editor-filename"></span>
     <button class="btn btn-dbx"     id="btn-dbx-save">
-      ☁ <span class="btn-text-long">Dropboxに保存</span><span class="btn-text-short">保存</span>
+      ☁ <span class="btn-text-long">OneDriveに保存</span><span class="btn-text-short">保存</span>
     </button>
     <button class="btn btn-primary" id="btn-download">
       ↓ <span class="btn-text-long">ダウンロード</span><span class="btn-text-short">DL</span>
@@ -1269,7 +1270,7 @@ input[type=range]::-moz-range-thumb {
 <!-- ========== DBX MODAL ========== -->
 <div id="dbx-modal-bg" class="hidden">
   <div id="dbx-modal">
-    <h3>☁ Dropboxの保存先フォルダ</h3>
+    <h3>☁ OneDriveの保存先フォルダ</h3>
     <p>保存先フォルダのパスを入力してください。<br>フォルダが存在しない場合は自動で作成されます。</p>
     <input id="dbx-folder-input" type="text" placeholder="例: 配筋写真/現場A" value="配筋写真">
     <p class="dbx-example">例: 配筋写真 → /配筋写真/<br>例: 配筋写真/2024年度/現場A → /配筋写真/2024年度/現場A/</p>
@@ -1291,10 +1292,13 @@ input[type=range]::-moz-range-thumb {
 
 <script>
 // ============================================================
-//  ★ Dropbox App Key
+//  ★ Microsoft (OneDrive) クライアントID
 // ============================================================
-const DROPBOX_APP_KEY = 'c5xn5alzj04ola4';
-const DBX_ENABLED = DROPBOX_APP_KEY !== 'YOUR_APP_KEY_HERE';
+// ★ Azureで取得した「アプリケーション(クライアント)ID」に書き換えてください
+const MS_CLIENT_ID = 'YOUR_CLIENT_ID_HERE';
+const MS_AUTHORITY = 'https://login.microsoftonline.com/common';
+const MS_SCOPES    = 'Files.ReadWrite offline_access User.Read openid profile';
+const DBX_ENABLED  = MS_CLIENT_ID !== 'YOUR_CLIENT_ID_HERE';
 
 const uid = () => Math.random().toString(36).substr(2, 9);
 function $(id) { return document.getElementById(id); }
@@ -1394,20 +1398,21 @@ function doUndo(){
   showToast('元に戻しました','inf');
 }
 
-// ===== DROPBOX =====
+// ===== ONEDRIVE (Microsoft Graph) =====
+// 関数名はUI側の呼び出しを変えずに済むよう dbx* のまま流用しています。
 let dbxToken = sessionStorage.getItem('dbx_token')||null;
 let dbxPendingAction = null;
 
 function updateDbxBadge(){
   const badge=$('dbx-badge');
-  if(dbxToken){ badge.classList.add('connected'); $('dbx-badge-text').textContent='☁ Dropbox 接続済'; }
-  else{ badge.classList.remove('connected'); $('dbx-badge-text').textContent='Dropbox 未接続'; }
+  if(dbxToken){ badge.classList.add('connected'); $('dbx-badge-text').textContent='☁ OneDrive 接続済'; }
+  else{ badge.classList.remove('connected'); $('dbx-badge-text').textContent='OneDrive 未接続'; }
 }
 async function dbxToggle(){
-  if(!DBX_ENABLED){ showToast('先にApp Keyを設定してください','err'); return; }
+  if(!DBX_ENABLED){ showToast('先にクライアントIDを設定してください','err'); return; }
   if(dbxToken){
-    if(confirm('Dropboxの接続を切断しますか？')){
-      sessionStorage.removeItem('dbx_token'); sessionStorage.removeItem('dbx_pkce_verifier');
+    if(confirm('OneDriveの接続を切断しますか？')){
+      sessionStorage.removeItem('dbx_token'); sessionStorage.removeItem('dbx_refresh'); sessionStorage.removeItem('dbx_pkce_verifier');
       dbxToken=null; updateDbxBadge(); showToast('切断しました','inf');
     }
   } else { await dbxStartAuth(); }
@@ -1416,9 +1421,9 @@ async function dbxStartAuth(){
   const verifier=generateVerifier(), challenge=await generateChallenge(verifier);
   sessionStorage.setItem('dbx_pkce_verifier',verifier); sessionStorage.setItem('dbx_return','auth');
   const redirectUri=window.location.href.split('?')[0].split('#')[0];
-  window.location.href='https://www.dropbox.com/oauth2/authorize?'+new URLSearchParams({
-    client_id:DROPBOX_APP_KEY, response_type:'code', code_challenge:challenge,
-    code_challenge_method:'S256', redirect_uri:redirectUri, token_access_type:'online'
+  window.location.href=MS_AUTHORITY+'/oauth2/v2.0/authorize?'+new URLSearchParams({
+    client_id:MS_CLIENT_ID, response_type:'code', redirect_uri:redirectUri,
+    scope:MS_SCOPES, code_challenge:challenge, code_challenge_method:'S256', response_mode:'query'
   });
 }
 async function dbxHandleCallback(){
@@ -1428,12 +1433,17 @@ async function dbxHandleCallback(){
   window.history.replaceState({},document.title,window.location.pathname);
   const redirectUri=window.location.href.split('?')[0].split('#')[0];
   try {
-    const res=await fetch('https://api.dropboxapi.com/oauth2/token',{
+    const res=await fetch(MS_AUTHORITY+'/oauth2/v2.0/token',{
       method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:new URLSearchParams({code,grant_type:'authorization_code',code_verifier:verifier,client_id:DROPBOX_APP_KEY,redirect_uri:redirectUri})
+      body:new URLSearchParams({client_id:MS_CLIENT_ID,grant_type:'authorization_code',code,redirect_uri:redirectUri,code_verifier:verifier,scope:MS_SCOPES})
     });
     const data=await res.json();
-    if(data.access_token){ dbxToken=data.access_token; sessionStorage.setItem('dbx_token',dbxToken); sessionStorage.removeItem('dbx_pkce_verifier'); sessionStorage.removeItem('dbx_return'); updateDbxBadge(); showToast('Dropboxに接続しました ✓','ok'); }
+    if(data.access_token){
+      dbxToken=data.access_token; sessionStorage.setItem('dbx_token',dbxToken);
+      if(data.refresh_token) sessionStorage.setItem('dbx_refresh',data.refresh_token);
+      sessionStorage.removeItem('dbx_pkce_verifier'); sessionStorage.removeItem('dbx_return');
+      updateDbxBadge(); showToast('OneDriveに接続しました ✓','ok');
+    }
     else showToast('認証失敗: '+(data.error_description||data.error),'err');
   } catch(e){ showToast('通信エラー: '+e.message,'err'); }
 }
@@ -1445,23 +1455,43 @@ async function generateChallenge(v){
   const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));
   return btoa(String.fromCharCode(...new Uint8Array(d))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
 }
+// OneDriveへアップロード。4MB超は分割アップロードセッションで確実に送る。
 async function dbxUpload(path,blob){
-  const res=await fetch('https://content.dropboxapi.com/2/files/upload',{
+  const encPath=path.split('/').map(s=>encodeURIComponent(s)).join('/');
+  if(blob.size < 4*1024*1024){
+    const res=await fetch('https://graph.microsoft.com/v1.0/me/drive/root:'+encPath+':/content',{
+      method:'PUT',
+      headers:{'Authorization':'Bearer '+dbxToken,'Content-Type':'application/octet-stream'},
+      body:blob
+    });
+    if(!res.ok) throw await graphErr(res);
+    return await res.json();
+  }
+  const sess=await fetch('https://graph.microsoft.com/v1.0/me/drive/root:'+encPath+':/createUploadSession',{
     method:'POST',
-    headers:{'Authorization':'Bearer '+dbxToken,'Content-Type':'application/octet-stream','Dropbox-API-Arg':JSON.stringify({path,mode:'overwrite',autorename:true})},
+    headers:{'Authorization':'Bearer '+dbxToken,'Content-Type':'application/json'},
+    body:JSON.stringify({item:{'@microsoft.graph.conflictBehavior':'rename'}})
+  });
+  if(!sess.ok) throw await graphErr(sess);
+  const {uploadUrl}=await sess.json();
+  const total=blob.size;
+  const put=await fetch(uploadUrl,{
+    method:'PUT',
+    headers:{'Content-Range':'bytes 0-'+(total-1)+'/'+total},
     body:blob
   });
-  if(!res.ok){
-    const err=await res.json().catch(()=>({}));
-    if(res.status===401){ sessionStorage.removeItem('dbx_token'); dbxToken=null; updateDbxBadge(); throw new Error('認証期限切れ。再度サインインしてください。'); }
-    throw new Error(err.error_summary||res.statusText);
-  }
-  return await res.json();
+  if(!put.ok) throw await graphErr(put);
+  return await put.json();
+}
+async function graphErr(res){
+  if(res.status===401){ sessionStorage.removeItem('dbx_token'); dbxToken=null; updateDbxBadge(); return new Error('認証期限切れ。再度サインインしてください。'); }
+  const e=await res.json().catch(()=>({}));
+  return new Error((e.error&&e.error.message)||res.statusText);
 }
 
 function openDbxModal(action){
-  if(!DBX_ENABLED){ showToast('先にApp Keyを設定してください','err'); return; }
-  if(!dbxToken){ showToast('先にDropboxに接続してください','inf'); dbxStartAuth(); return; }
+  if(!DBX_ENABLED){ showToast('先にクライアントIDを設定してください','err'); return; }
+  if(!dbxToken){ showToast('先にOneDriveに接続してください','inf'); dbxStartAuth(); return; }
   dbxPendingAction=action; $('dbx-folder-input').value=getProjectFolder(); $('dbx-modal-bg').classList.remove('hidden');
 }
 function closeDbxModal(){ $('dbx-modal-bg').classList.add('hidden'); dbxPendingAction=null; }
@@ -1471,7 +1501,7 @@ $('btn-dbx-confirm').onclick=async()=>{
   closeDbxModal(); if(!dbxPendingAction) return;
   if(dbxPendingAction.type==='single'){
     const photo=photos.find(p=>p.id===dbxPendingAction.id); showProgress('アップロード中…',0);
-    try { const blob=await canvasToBlob(await renderToCanvas(photo)); await dbxUpload('/'+folder+'/marked_'+photo.name.replace(/\.[^.]+$/,'')+'.jpg',blob); hideProgress(); showToast('Dropboxに保存しました ✓','ok'); }
+    try { const blob=await canvasToBlob(await renderToCanvas(photo)); await dbxUpload('/'+folder+'/marked_'+photo.name.replace(/\.[^.]+$/,'')+'.jpg',blob); hideProgress(); showToast('OneDriveに保存しました ✓','ok'); }
     catch(e){ hideProgress(); showToast('保存失敗: '+e.message,'err'); }
   } else if(dbxPendingAction.type==='bulk'){
     const targets=photos.filter(p=>dbxPendingAction.ids.includes(p.id)); let ok=0; showProgress('0 / '+targets.length+' 枚',0);
@@ -1479,7 +1509,7 @@ $('btn-dbx-confirm').onclick=async()=>{
       try { const blob=await canvasToBlob(await renderToCanvas(photo)); await dbxUpload('/'+folder+'/marked_'+photo.name.replace(/\.[^.]+$/,'')+'.jpg',blob); ok++; showProgress(ok+' / '+targets.length+' 枚完了',ok/targets.length*100); }
       catch(e){ showToast('エラー: '+e.message,'err'); }
     }
-    hideProgress(); showToast(ok+' / '+targets.length+' 枚をDropboxに保存しました ✓','ok');
+    hideProgress(); showToast(ok+' / '+targets.length+' 枚をOneDriveに保存しました ✓','ok');
   }
 };
 
