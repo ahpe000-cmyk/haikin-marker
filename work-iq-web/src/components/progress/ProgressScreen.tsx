@@ -1,11 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import {
-  loadProgress,
-  type ProgressState,
-} from "@/lib/storage/local-progress";
+import { useProgress } from "@/lib/storage/use-progress";
 import {
   SCORE_STATE_LABELS,
   calculateCategoryScores,
@@ -24,11 +20,7 @@ const KIND_LABELS: Record<string, string> = {
 };
 
 export function ProgressScreen() {
-  const [progress, setProgress] = useState<ProgressState | null>(null);
-
-  useEffect(() => {
-    setProgress(loadProgress());
-  }, []);
+  const progress = useProgress();
 
   if (!progress) {
     return (

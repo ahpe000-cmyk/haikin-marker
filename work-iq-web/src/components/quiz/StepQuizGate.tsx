@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type { Question, Step } from "@/lib/domain/types";
 import type { EvergreenSlug } from "@/lib/domain/categories";
 import { SLUG_TO_CATEGORY } from "@/lib/domain/categories";
-import {
-  loadProgress,
-  type EvergreenCategory,
-} from "@/lib/storage/local-progress";
+import type { EvergreenCategory } from "@/lib/storage/local-progress";
+import { useProgress } from "@/lib/storage/use-progress";
 import { ButtonLink } from "@/components/ui/Button";
 import { QuizRunner } from "./QuizRunner";
 
@@ -21,11 +18,9 @@ export function StepQuizGate({
   questions: Question[];
 }) {
   const category = SLUG_TO_CATEGORY[slug] as EvergreenCategory;
-  const [unlocked, setUnlocked] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    setUnlocked(loadProgress().stepUnlocks[category] >= step);
-  }, [category, step]);
+  const progress = useProgress();
+  const unlocked =
+    progress === null ? null : progress.stepUnlocks[category] >= step;
 
   if (unlocked === null) {
     return (

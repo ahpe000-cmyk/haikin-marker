@@ -61,14 +61,18 @@ describe("questionSchema", () => {
     expect(questionSchema.safeParse(duplicated).success).toBe(false);
   });
 
+  function withoutCorrectChoice() {
+    const clone: Record<string, unknown> = { ...baseQuestion };
+    delete clone.correctChoiceId;
+    return clone;
+  }
+
   it("requires correctChoiceId for single_correct", () => {
-    const { correctChoiceId: _omitted, ...rest } = baseQuestion;
-    expect(questionSchema.safeParse(rest).success).toBe(false);
+    expect(questionSchema.safeParse(withoutCorrectChoice()).success).toBe(false);
   });
 
   it("requires recommendedChoiceId for best_answer", () => {
-    const { correctChoiceId: _omitted, ...rest } = baseQuestion;
-    const bestAnswer = { ...rest, mode: "best_answer" };
+    const bestAnswer = { ...withoutCorrectChoice(), mode: "best_answer" };
     expect(questionSchema.safeParse(bestAnswer).success).toBe(false);
 
     const valid = { ...bestAnswer, recommendedChoiceId: "c" };

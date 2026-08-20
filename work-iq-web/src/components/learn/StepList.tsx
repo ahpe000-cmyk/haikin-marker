@@ -1,28 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { Step } from "@/lib/domain/types";
 import type { EvergreenSlug } from "@/lib/domain/categories";
 import { SLUG_TO_CATEGORY } from "@/lib/domain/categories";
-import {
-  loadProgress,
-  type EvergreenCategory,
-} from "@/lib/storage/local-progress";
+import type { EvergreenCategory } from "@/lib/storage/local-progress";
+import { useProgress } from "@/lib/storage/use-progress";
 import { track } from "@/lib/analytics/track";
 
 const STEPS: Step[] = [1, 2, 3, 4, 5];
 
 export function StepList({ slug }: { slug: EvergreenSlug }) {
   const category = SLUG_TO_CATEGORY[slug] as EvergreenCategory;
-  const [unlockedStep, setUnlockedStep] = useState<number | null>(null);
-  const [bestByStep, setBestByStep] = useState<Record<number, number>>({});
+  const progress = useProgress();
   const viewTracked = useRef(false);
 
   useEffect(() => {
-    const progress = loadProgress();
-    setUnlockedStep(progress.stepUnlocks[category]);
+    if (!viewTracked.current) {
+      viewTracked.current = true;
+      track("learn_category_view", { category });
+    }
+  }, [category]);
+
+  const unlockedStep = progress?.stepUnlocks[category] ?? null;
+
+  const bestByStep = useMemo(() => {
     const best: Record<number, number> = {};
+    if (!progress) return best;
     for (const session of progress.sessions) {
       if (
         session.kind === "step" &&
@@ -34,12 +39,8 @@ export function StepList({ slug }: { slug: EvergreenSlug }) {
         best[session.step] = Math.max(best[session.step] ?? 0, correct);
       }
     }
-    setBestByStep(best);
-    if (!viewTracked.current) {
-      viewTracked.current = true;
-      track("learn_category_view", { category });
-    }
-  }, [category]);
+    return best;
+  }, [progress, category]);
 
   return (
     <ol className="mt-4 space-y-3">

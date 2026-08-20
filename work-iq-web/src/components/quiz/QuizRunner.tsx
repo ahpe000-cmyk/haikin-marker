@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
   Category,
@@ -16,7 +16,8 @@ import {
   createSession,
   scoreAnswer,
 } from "@/lib/quiz/session";
-import { loadProgress, saveProgress } from "@/lib/storage/local-progress";
+import { updateProgress } from "@/lib/storage/progress-store";
+import { useIsClient } from "@/lib/storage/use-progress";
 import {
   clearActiveSession,
   loadActiveSession,
@@ -41,12 +42,12 @@ export function QuizRunner({
   step?: Step;
 }) {
   const router = useRouter();
-  const [session, setSession] = useState<QuizSession | null>(null);
-  const [index, setIndex] = useState(0);
-  const [selected, setSelected] = useState<ChoiceId | null>(null);
-  const startTracked = useRef(false);
+  const isClient = useIsClient();
 
-  useEffect(() => {
+  // Resume an in-flight session for the same quiz on the same JST day,
+  // otherwise start fresh. Computed once per mount on the client.
+  const initialSession = useMemo<QuizSession | null>(() => {
+    if (!isClient) return null;
     const dateKey = getJstDateKey();
     const stored = loadActiveSession();
     const questionIds = questions.map((q) => q.id);
@@ -60,31 +61,40 @@ export function QuizRunner({
       stored.questionIds.length === questionIds.length &&
       stored.questionIds.every((id) => questionIds.includes(id)) &&
       stored.answers.length < stored.questionIds.length;
-
-    if (resumable && stored) {
-      setSession(stored);
-      setIndex(stored.answers.length);
-    } else {
-      const fresh = createSession({ kind, questions, dateKey, category, step });
-      setSession(fresh);
-      saveActiveSession(fresh);
-    }
-
-    if (!startTracked.current) {
-      startTracked.current = true;
-      if (kind === "daily") track("daily_quiz_start", { category });
-      else if (kind === "review") track("review_start", {});
-      else track("quiz_start", { category, step });
-    }
+    if (resumable && stored) return stored;
+    return createSession({ kind, questions, dateKey, category, step });
     // The question set is fixed for the lifetime of this runner.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isClient]);
 
-  const orderedQuestions = session
-    ? session.questionIds
-        .map((id) => questions.find((q) => q.id === id))
-        .filter((q): q is Question => q !== undefined)
-    : questions;
+  const [sessionOverride, setSessionOverride] = useState<QuizSession | null>(
+    null,
+  );
+  const session = sessionOverride ?? initialSession;
+
+  const [cursor, setCursor] = useState<{
+    index: number;
+    selected: ChoiceId | null;
+  } | null>(null);
+  const index = cursor?.index ?? initialSession?.answers.length ?? 0;
+  const selected = cursor?.selected ?? null;
+
+  const startTracked = useRef(false);
+  useEffect(() => {
+    if (!initialSession || startTracked.current) return;
+    startTracked.current = true;
+    saveActiveSession(initialSession);
+    if (kind === "daily") track("daily_quiz_start", { category });
+    else if (kind === "review") track("review_start", {});
+    else track("quiz_start", { category, step });
+  }, [initialSession, kind, category, step]);
+
+  const orderedQuestions = useMemo(() => {
+    if (!session) return questions;
+    return session.questionIds
+      .map((id) => questions.find((q) => q.id === id))
+      .filter((q): q is Question => q !== undefined);
+  }, [session, questions]);
 
   const question = orderedQuestions[index];
   const locked = selected !== null;
@@ -92,10 +102,10 @@ export function QuizRunner({
   const handleSelect = useCallback(
     (choiceId: ChoiceId) => {
       if (!session || !question || selected !== null) return;
-      setSelected(choiceId);
       const answer = scoreAnswer(question, choiceId);
       const updated = { ...session, answers: [...session.answers, answer] };
-      setSession(updated);
+      setSessionOverride(updated);
+      setCursor({ index, selected: choiceId });
       saveActiveSession(updated);
       track("question_answered", {
         category: question.category,
@@ -104,19 +114,17 @@ export function QuizRunner({
         step,
       });
     },
-    [session, question, selected, step],
+    [session, question, selected, index, step],
   );
 
   const handleNext = useCallback(() => {
     if (!session) return;
     if (index + 1 < orderedQuestions.length) {
-      setIndex(index + 1);
-      setSelected(null);
+      setCursor({ index: index + 1, selected: null });
       return;
     }
     const completed = completeSession(session);
-    const progress = applyCompletedSession(loadProgress(), completed);
-    saveProgress(progress);
+    updateProgress((progress) => applyCompletedSession(progress, completed));
     clearActiveSession();
     track("quiz_complete", { category, sessionId: completed.id, step });
     if (kind === "review") track("review_complete", { sessionId: completed.id });

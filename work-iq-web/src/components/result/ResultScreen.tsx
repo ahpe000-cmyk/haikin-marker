@@ -1,12 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { Category, Question, QuizSession } from "@/lib/domain/types";
-import {
-  loadProgress,
-  type ProgressState,
-} from "@/lib/storage/local-progress";
+import { useProgress } from "@/lib/storage/use-progress";
 import {
   SCORE_STATE_LABELS,
   calculateCategoryScores,
@@ -55,20 +52,17 @@ export function ResultScreen({
   sessionId: string;
   allQuestions: Question[];
 }) {
-  const [progress, setProgress] = useState<ProgressState | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const progress = useProgress();
   const viewTracked = useRef(false);
 
   useEffect(() => {
-    setProgress(loadProgress());
-    setLoaded(true);
     if (!viewTracked.current) {
       viewTracked.current = true;
       track("result_view", { sessionId });
     }
   }, [sessionId]);
 
-  if (!loaded) {
+  if (progress === null) {
     return (
       <p className="py-8 text-center text-muted" role="status">
         読み込み中…

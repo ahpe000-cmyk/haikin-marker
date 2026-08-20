@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import type { Question } from "@/lib/domain/types";
 import { selectDailyQuestions } from "@/lib/quiz/select-questions";
-import { loadProgress } from "@/lib/storage/local-progress";
+import { useProgress } from "@/lib/storage/use-progress";
 import { loadActiveSession } from "@/lib/storage/active-session";
 import { addDaysToDateKey, getJstDateKey } from "@/lib/time/jst";
 import { QuizRunner } from "./QuizRunner";
@@ -19,10 +19,10 @@ export function DailyQuizLoader({
   risk: Question[];
   currentAffairs: Question[];
 }) {
-  const [questions, setQuestions] = useState<Question[] | null>(null);
+  const progress = useProgress();
 
-  useEffect(() => {
-    const progress = loadProgress();
+  const questions = useMemo<Question[] | null>(() => {
+    if (!progress) return null;
     const todayKey = getJstDateKey();
     const weekAgoKey = addDaysToDateKey(todayKey, -7);
     const allQuestions = [
@@ -45,25 +45,22 @@ export function DailyQuizLoader({
         .map((id) => allQuestions.find((q) => q.id === id))
         .filter((q): q is Question => q !== undefined);
       if (activeQuestions.length === active.questionIds.length) {
-        setQuestions(activeQuestions);
-        return;
+        return activeQuestions;
       }
     }
 
     const recentIds = progress.recentQuestions
       .filter((entry) => entry.dateKey >= weekAgoKey)
       .map((entry) => entry.id);
-    setQuestions(
-      selectDailyQuestions({
-        businessTerms,
-        judgment,
-        risk,
-        currentAffairs,
-        recentQuestionIds: recentIds,
-        seed: `${progress.anonId}-${todayKey}`,
-      }),
-    );
-  }, [businessTerms, judgment, risk, currentAffairs]);
+    return selectDailyQuestions({
+      businessTerms,
+      judgment,
+      risk,
+      currentAffairs,
+      recentQuestionIds: recentIds,
+      seed: `${progress.anonId}-${todayKey}`,
+    });
+  }, [progress, businessTerms, judgment, risk, currentAffairs]);
 
   if (!questions) {
     return (

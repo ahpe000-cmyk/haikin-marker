@@ -1,17 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Card } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { ScoreCard } from "./ScoreCard";
 import { ReviewCard } from "./ReviewCard";
 import { DailyPollCard } from "./DailyPollCard";
 import { DailyQuizCard } from "./DailyQuizCard";
-import {
-  loadProgress,
-  type ProgressState,
-} from "@/lib/storage/local-progress";
+import { useProgress } from "@/lib/storage/use-progress";
 import {
   calculateCategoryScores,
   calculateOverallWorkIq,
@@ -28,11 +25,10 @@ const CATEGORY_LINKS = [
 ] as const;
 
 export function HomeScreen({ hasFreshNews }: { hasFreshNews: boolean }) {
-  const [progress, setProgress] = useState<ProgressState | null>(null);
+  const progress = useProgress();
   const viewTracked = useRef(false);
 
   useEffect(() => {
-    setProgress(loadProgress());
     if (!viewTracked.current) {
       viewTracked.current = true;
       track("landing_view");

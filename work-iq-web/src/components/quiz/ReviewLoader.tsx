@@ -1,21 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import type { Question } from "@/lib/domain/types";
 import { buildReviewQuestions } from "@/lib/review/build-review-session";
-import { loadProgress } from "@/lib/storage/local-progress";
+import { useProgress } from "@/lib/storage/use-progress";
+import { getProgressSnapshot } from "@/lib/storage/progress-store";
+import type { ProgressState } from "@/lib/storage/local-progress";
 import { getJstDateKey } from "@/lib/time/jst";
 import { ButtonLink } from "@/components/ui/Button";
 import { QuizRunner } from "./QuizRunner";
 
 export function ReviewLoader({ allQuestions }: { allQuestions: Question[] }) {
-  const [questions, setQuestions] = useState<Question[] | null>(null);
+  const progress = useProgress();
+  const hasProgress = progress !== null;
 
-  useEffect(() => {
-    setQuestions(
-      buildReviewQuestions(loadProgress(), allQuestions, getJstDateKey()),
+  // The review set is fixed at mount; later progress updates (the review
+  // completion itself) must not rebuild it mid-session.
+  const questions = useMemo<Question[] | null>(() => {
+    if (!hasProgress) return null;
+    return buildReviewQuestions(
+      getProgressSnapshot() as ProgressState,
+      allQuestions,
+      getJstDateKey(),
     );
-  }, [allQuestions]);
+  }, [hasProgress, allQuestions]);
 
   if (questions === null) {
     return (
