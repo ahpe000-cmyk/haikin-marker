@@ -10,6 +10,15 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
+    // Use a preinstalled Chromium when the environment provides one
+    // (e.g. containers with PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1).
+    ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
+      ? {
+          launchOptions: {
+            executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+          },
+        }
+      : {}),
   },
   projects: [
     {
