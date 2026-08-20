@@ -1,8 +1,15 @@
-export default function Home() {
-  return (
-    <main className="mx-auto max-w-[720px] px-4 py-8">
-      <h1 className="text-2xl font-bold">WORK IQ</h1>
-      <p className="mt-2 text-muted">社会人力を、毎日5問で。</p>
-    </main>
+import { HomeScreen } from "@/components/home/HomeScreen";
+import { loadCurrentAffairsBatches } from "@/lib/content/load";
+import { hasFreshCurrentAffairs } from "@/lib/quiz/current-affairs";
+import { getJstDateKey } from "@/lib/time/jst";
+
+// Freshness depends on the JST date at request time.
+export const dynamic = "force-dynamic";
+
+export default function HomePage() {
+  const hasFreshNews = hasFreshCurrentAffairs(
+    loadCurrentAffairsBatches(),
+    getJstDateKey(),
   );
+  return <HomeScreen hasFreshNews={hasFreshNews} />;
 }
