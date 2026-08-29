@@ -194,6 +194,7 @@ export default function AHPEHeadquarters() {
   return (
     <div className={(isMobile ? "flex flex-col" : "flex") + " h-screen w-full overflow-hidden hud-grid"} style={{ background: PAPER, color: TEXT_DARK, fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif" }}>
       <HUDStyles />
+      <div className="hud-crt" />
 
       {/* 左：出退勤札ボード（社員名簿）※PC時のみ */}
       {!isMobile && (

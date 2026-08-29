@@ -6,7 +6,7 @@ import ArcRing from "./ArcRing";
 // 左：出退勤札ボード（社員名簿）※PC時のみ
 const Sidebar = ({ activeId, onSelect, chats, clock, brain }) => (
   <aside className="flex flex-col w-64 shrink-0" style={{ background: INK }}>
-    <div className="px-5 pt-5 pb-4" style={{ borderBottom: "1px solid " + INK_SOFT }}>
+    <div className="px-5 pt-5 pb-4 relative" style={{ borderBottom: "1px solid " + INK_SOFT }}>
       <div className="flex items-center gap-3">
         <ArcRing size={30} />
         <div>
@@ -15,9 +15,10 @@ const Sidebar = ({ activeId, onSelect, chats, clock, brain }) => (
         </div>
       </div>
       <div className="mt-3 flex items-center justify-between text-[10px]" style={{ fontFamily: MONO, color: TEXT_DIM }}>
-        <span>{clock.toLocaleTimeString("ja-JP", { hour12: false })}</span>
+        <span>{clock.toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })} {clock.toLocaleTimeString("ja-JP", { hour12: false })}</span>
         <span style={{ color: brain ? SHU : ALERT }}>{brain ? "LINK ●" : "LINK ○"}</span>
       </div>
+      <span className="hud-sweepline" />
     </div>
 
     <nav className="flex-1 overflow-y-auto py-3">
@@ -28,7 +29,7 @@ const Sidebar = ({ activeId, onSelect, chats, clock, brain }) => (
           <button
             key={emp.id}
             onClick={() => onSelect(emp.id)}
-            className="w-full text-left px-3 py-2.5 mb-1 mx-2 flex items-center gap-3 transition-all"
+            className={"w-full text-left px-3 py-2.5 mb-1 mx-2 flex items-center gap-3 transition-all" + (isActive ? " cut-sm" : "")}
             style={{
               width: "calc(100% - 16px)",
               background: isActive ? "linear-gradient(90deg," + SHU + "18, transparent)" : "transparent",
@@ -59,8 +60,9 @@ const Sidebar = ({ activeId, onSelect, chats, clock, brain }) => (
       })}
     </nav>
 
-    <div className="px-5 py-3 text-[10px]" style={{ borderTop: "1px solid " + INK_SOFT, color: TEXT_DIM, fontFamily: MONO, letterSpacing: "0.08em" }}>
-      OPERATOR: 花園まい ／ CREW 3 + AI 10
+    <div className="px-5 py-3 text-[10px]" style={{ borderTop: "1px solid " + INK_SOFT, fontFamily: MONO, letterSpacing: "0.08em" }}>
+      <div style={{ color: SHU_DIM }}>SYS.CORE ONLINE <span className="hud-caret" style={{ marginLeft: 4 }} /></div>
+      <div className="mt-1" style={{ color: TEXT_DIM }}>OPERATOR: 花園まい ／ CREW 3 + AI 10</div>
     </div>
   </aside>
 );

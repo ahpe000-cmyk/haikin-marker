@@ -20,12 +20,12 @@ const MobileBar = ({ activeId, onSelect, clock }) => (
           <button
             key={emp.id}
             onClick={() => onSelect(emp.id)}
-            className="shrink-0 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all"
+            className="shrink-0 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all cut-sm"
             style={{
               background: isActive ? SHU : "transparent",
               color: isActive ? INK : TEXT_DIM,
               border: "1px solid " + (isActive ? SHU : INK_SOFT),
-              boxShadow: isActive ? GLOW(SHU, 6) : "none",
+              filter: isActive ? "drop-shadow(0 0 6px " + SHU + "88)" : "none",
             }}
           >
             {emp.num} {emp.name}
