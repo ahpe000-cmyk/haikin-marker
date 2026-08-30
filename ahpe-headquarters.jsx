@@ -165,7 +165,8 @@ export default function AHPEHeadquarters() {
       setBrain(b);
       await sSet("ahpe-brain", b);
     } catch (e) {
-      setError("共有脳の同期に失敗しました: " + e.message);
+      const hint = isArtifactEnv() ? "" : " ※WEB版ではNotion認証が使えないため、「契約書・憲章」画面の「共有脳（手動貼り付け）」をご利用ください。";
+      setError("共有脳の同期に失敗しました: " + e.message + hint);
     } finally {
       setBrainLoading(false);
     }
@@ -176,12 +177,22 @@ export default function AHPEHeadquarters() {
     await sSet("ahpe-chat-" + activeId, []);
   };
 
-  const saveSettings = async () => {
+  const saveSettings = async (brainText) => {
     await sSet("ahpe-charter", charter);
     await sSet("ahpe-prompts", prompts);
     if (!isArtifactEnv()) {
       saveApiKey(apiKey.trim());
       saveWorkspaceId(workspaceId.trim());
+    }
+    // 共有脳の手動貼り付け（WEB版のみ・undefinedならフィールド非表示だったので触らない）
+    if (brainText !== undefined) {
+      const t = brainText.trim();
+      let b;
+      if (!t) b = null;                                // 空 → 未同期に戻す
+      else if (brain && brain.content === t) b = brain; // 変更なし → 同期時刻を保持
+      else b = { content: t, updatedAt: new Date().toLocaleString("ja-JP") + "（手動）" };
+      setBrain(b);
+      await sSet("ahpe-brain", b);
     }
     setSettingsOpen(false);
   };
@@ -268,6 +279,7 @@ export default function AHPEHeadquarters() {
           setApiKey={setApiKey}
           workspaceId={workspaceId}
           setWorkspaceId={setWorkspaceId}
+          initialBrainText={brain ? brain.content : ""}
           onClose={() => setSettingsOpen(false)}
           onSave={saveSettings}
           isMobile={isMobile}
