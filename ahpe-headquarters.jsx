@@ -10,7 +10,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { PAPER, TEXT_DARK, ALERT } from "./arc/theme";
 import { EMPLOYEES, DEFAULT_CHARTER, DEFAULT_PROMPTS, NOTION_MCP } from "./arc/data";
 import { sGet, sSet } from "./arc/storage";
-import { postMessages, extractText, extractToolCalls, isArtifactEnv, getApiKey, saveApiKey, getWorkspaceId, saveWorkspaceId } from "./arc/api";
+import { postMessages, extractText, extractToolCalls, isArtifactEnv, getApiKey, saveApiKey, getWorkspaceId, saveWorkspaceId, fetchBrainJson } from "./arc/api";
 import HUDStyles from "./arc/components/HUDStyles";
 import LoadingScreen from "./arc/components/LoadingScreen";
 import Sidebar from "./arc/components/Sidebar";
@@ -69,6 +69,16 @@ export default function AHPEHeadquarters() {
       setBrain(b);
       setChats(loaded);
       setReady(true);
+      // WEB版: 起動時にbrain.json（ActionsがNotionから定期生成）を自動読み込み。
+      // 失敗しても保存済みの共有脳（手動貼り付け等）をそのまま使う。
+      if (!isArtifactEnv()) {
+        try {
+          const j = await fetchBrainJson();
+          const auto = { content: j.content, updatedAt: j.updatedAt + "（自動）" };
+          setBrain(auto);
+          await sSet("ahpe-brain", auto);
+        } catch (e) { /* brain.json未生成なら何もしない */ }
+      }
     })();
   }, []);
 
@@ -144,6 +154,20 @@ export default function AHPEHeadquarters() {
     if (brainLoading) return;
     setError("");
     setBrainLoading(true);
+    // WEB版: Notion MCPは認証不可のため、Actionsが定期生成するbrain.jsonを再取得する
+    if (!isArtifactEnv()) {
+      try {
+        const j = await fetchBrainJson();
+        const auto = { content: j.content, updatedAt: j.updatedAt + "（自動）" };
+        setBrain(auto);
+        await sSet("ahpe-brain", auto);
+      } catch (e) {
+        setError("共有脳の取得に失敗しました: " + e.message + " ※「契約書・憲章」画面の手動貼り付けも利用できます。");
+      } finally {
+        setBrainLoading(false);
+      }
+      return;
+    }
     try {
       const data = await postMessages({
         model: "claude-sonnet-4-6",
@@ -165,8 +189,7 @@ export default function AHPEHeadquarters() {
       setBrain(b);
       await sSet("ahpe-brain", b);
     } catch (e) {
-      const hint = isArtifactEnv() ? "" : " ※WEB版ではNotion認証が使えないため、「契約書・憲章」画面の「共有脳（手動貼り付け）」をご利用ください。";
-      setError("共有脳の同期に失敗しました: " + e.message + hint);
+      setError("共有脳の同期に失敗しました: " + e.message);
     } finally {
       setBrainLoading(false);
     }

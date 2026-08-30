@@ -53,6 +53,15 @@ export async function postMessages(body) {
   return data;
 }
 
+// ---------- 共有脳 brain.json（GitHub ActionsがNotionから定期生成・WEB版のみ） ----------
+export async function fetchBrainJson() {
+  const res = await fetch("brain.json", { cache: "no-store" });
+  if (!res.ok) throw new Error("brain.json がまだ生成されていません（GitHubのNOTION_TOKEN設定とActionsの実行を確認）");
+  const data = await res.json();
+  if (!data || !data.content) throw new Error("brain.json の内容が不正です");
+  return data; // {content, updatedAt}
+}
+
 // ---------- API応答のパース（typeで判別・位置に依存しない） ----------
 export function extractText(data) {
   if (!data || !Array.isArray(data.content)) return "";

@@ -52,7 +52,7 @@ const SettingsModal = ({ active, activeId, charter, setCharter, prompts, setProm
               style={{ background: PAPER, border: "1px solid " + INK_SOFT, color: TEXT_DARK, fontFamily: "inherit" }}
             />
             <div className="text-xs mt-1 mb-4" style={{ color: TEXT_DIM }}>
-              ※ WEB版ではNotion認証が使えないため「共有脳を同期」の代わりにここへ貼り付けます。保存すると全社員がこの内容を共有脳として参照します。空にして保存すると未同期に戻ります。
+              ※ 通常は自動同期（GitHub ActionsがNotionから定期取得）されるため空のままでOK。自動同期が未設定・失敗する場合の予備です。保存すると全社員がこの内容を共有脳として参照します。空にして保存すると未同期に戻ります。
             </div>
           </>
         )}

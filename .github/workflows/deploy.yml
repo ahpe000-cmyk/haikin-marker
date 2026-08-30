@@ -2,6 +2,10 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  schedule:
+    # JST 6:00 / 12:00 / 18:00 / 24:00 に共有脳を再取得してデプロイ
+    - cron: '0 21,3,9,15 * * *'
+  workflow_dispatch:
 permissions:
   contents: read
   pages: write
@@ -26,6 +30,11 @@ jobs:
           mkdir -p _site/arc
           cp index.html CNAME _site/
           cp -r web/dist/. _site/arc/
+      - name: Fetch shared brain from Notion
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_PAGE_ID: ${{ vars.NOTION_PAGE_ID }}
+        run: node scripts/fetch-brain.mjs _site/arc/brain.json
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
