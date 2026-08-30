@@ -2,8 +2,8 @@ import React from "react";
 import { INK, INK_SOFT, PAPER, CARD, SHU, TEXT_DARK, TEXT_DIM, GLOW } from "../theme";
 import Bracket from "./Bracket";
 
-// 設定モーダル：憲章と契約書
-const SettingsModal = ({ active, activeId, charter, setCharter, prompts, setPrompts, onClose, onSave, isMobile }) => (
+// 設定モーダル：憲章と契約書（Web環境ではAPIキー設定も）
+const SettingsModal = ({ active, activeId, charter, setCharter, prompts, setPrompts, showApiKey, apiKey, setApiKey, onClose, onSave, isMobile }) => (
   <div className={"fixed inset-0 z-50 flex items-center justify-center " + (isMobile ? "p-2" : "p-6")} style={{ background: "rgba(3,6,12,0.78)", backdropFilter: "blur(4px)" }}>
     <Bracket style={{ width: "100%", maxWidth: "48rem", maxHeight: "100%" }}><div className="w-full max-h-full overflow-y-auto cut" style={{ background: CARD, border: "1px solid " + SHU + "33", boxShadow: "0 0 40px " + SHU + "1A" }}>
       <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid " + INK_SOFT }}>
@@ -11,6 +11,23 @@ const SettingsModal = ({ active, activeId, charter, setCharter, prompts, setProm
         <button onClick={onClose} className="text-sm px-2" style={{ color: TEXT_DIM }}>閉じる</button>
       </div>
       <div className="px-6 py-4">
+        {showApiKey && (
+          <>
+            <div className="text-xs font-semibold mb-1" style={{ color: TEXT_DIM }}>Anthropic APIキー（Web版のみ・このブラウザ内にのみ保存）</div>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="sk-ant-…"
+              autoComplete="off"
+              className="w-full px-4 py-2.5 text-xs outline-none cut-sm"
+              style={{ background: PAPER, border: "1px solid " + SHU + "33", color: TEXT_DARK, fontFamily: "inherit" }}
+            />
+            <div className="text-xs mt-1 mb-4" style={{ color: TEXT_DIM }}>
+              ※ キーは console.anthropic.com で発行できます。このページのlocalStorageにのみ保存され、Anthropic API以外には送信されません。共有PCでは保存しないでください。
+            </div>
+          </>
+        )}
         <div className="text-xs font-semibold mb-1" style={{ color: TEXT_DIM }}>共通憲章（全社員に適用・第1〜9条）</div>
         <textarea
           value={charter}
