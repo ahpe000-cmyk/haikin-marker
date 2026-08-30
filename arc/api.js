@@ -5,6 +5,7 @@
 export const isArtifactEnv = () => typeof window !== "undefined" && !!window.storage;
 
 const API_KEY_STORAGE = "arc-api-key";
+const WORKSPACE_ID_STORAGE = "arc-workspace-id";
 
 export function getApiKey() {
   try { return localStorage.getItem(API_KEY_STORAGE) || ""; } catch (e) { return ""; }
@@ -14,6 +15,17 @@ export function saveApiKey(key) {
   try {
     if (key) localStorage.setItem(API_KEY_STORAGE, key);
     else localStorage.removeItem(API_KEY_STORAGE);
+  } catch (e) { /* localStorage不可の環境では保存しない */ }
+}
+
+export function getWorkspaceId() {
+  try { return localStorage.getItem(WORKSPACE_ID_STORAGE) || ""; } catch (e) { return ""; }
+}
+
+export function saveWorkspaceId(id) {
+  try {
+    if (id) localStorage.setItem(WORKSPACE_ID_STORAGE, id);
+    else localStorage.removeItem(WORKSPACE_ID_STORAGE);
   } catch (e) { /* localStorage不可の環境では保存しない */ }
 }
 
@@ -27,6 +39,8 @@ export async function postMessages(body) {
     headers["x-api-key"] = key;
     headers["anthropic-version"] = "2023-06-01";
     headers["anthropic-dangerous-direct-browser-access"] = "true";
+    const wsId = getWorkspaceId();
+    if (wsId) headers["anthropic-workspace-id"] = wsId;
     if (body.mcp_servers) headers["anthropic-beta"] = "mcp-client-2025-04-04";
   }
   const res = await fetch("https://api.anthropic.com/v1/messages", {

@@ -10,7 +10,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { PAPER, TEXT_DARK, ALERT } from "./arc/theme";
 import { EMPLOYEES, DEFAULT_CHARTER, DEFAULT_PROMPTS, NOTION_MCP } from "./arc/data";
 import { sGet, sSet } from "./arc/storage";
-import { postMessages, extractText, extractToolCalls, isArtifactEnv, getApiKey, saveApiKey } from "./arc/api";
+import { postMessages, extractText, extractToolCalls, isArtifactEnv, getApiKey, saveApiKey, getWorkspaceId, saveWorkspaceId } from "./arc/api";
 import HUDStyles from "./arc/components/HUDStyles";
 import LoadingScreen from "./arc/components/LoadingScreen";
 import Sidebar from "./arc/components/Sidebar";
@@ -34,6 +34,7 @@ export default function AHPEHeadquarters() {
   const [webOn, setWebOn] = useState(false);        // 送信時にWeb検索を持たせるか
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [apiKey, setApiKey] = useState(() => getApiKey());
+  const [workspaceId, setWorkspaceId] = useState(() => getWorkspaceId());
   const [error, setError] = useState("");
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth < 768);
   const [clock, setClock] = useState(new Date());
@@ -178,7 +179,10 @@ export default function AHPEHeadquarters() {
   const saveSettings = async () => {
     await sSet("ahpe-charter", charter);
     await sSet("ahpe-prompts", prompts);
-    if (!isArtifactEnv()) saveApiKey(apiKey.trim());
+    if (!isArtifactEnv()) {
+      saveApiKey(apiKey.trim());
+      saveWorkspaceId(workspaceId.trim());
+    }
     setSettingsOpen(false);
   };
 
@@ -262,6 +266,8 @@ export default function AHPEHeadquarters() {
           showApiKey={!isArtifactEnv()}
           apiKey={apiKey}
           setApiKey={setApiKey}
+          workspaceId={workspaceId}
+          setWorkspaceId={setWorkspaceId}
           onClose={() => setSettingsOpen(false)}
           onSave={saveSettings}
           isMobile={isMobile}
