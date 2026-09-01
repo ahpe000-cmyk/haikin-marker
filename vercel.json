@@ -1,0 +1,5 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build && rm -rf _site && mkdir -p _site/arc && cp index.html _site/ && cp -r web/dist/. _site/arc/",
+  "outputDirectory": "_site"
+}
