@@ -3,7 +3,8 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "build": "esbuild web/main.jsx --bundle --loader:.js=jsx --minify --outfile=web/dist/arc.js && node -e \"require('fs').cpSync('web/index.html','web/dist/index.html')\""
+    "build": "esbuild web/main.jsx --bundle --loader:.js=jsx --minify --outfile=web/dist/arc.js && node -e \"require('fs').cpSync('web/index.html','web/dist/index.html')\"",
+    "vercel-build": "npm run build && node -e \"const fs=require('fs');fs.rmSync('public',{recursive:true,force:true});fs.mkdirSync('public/arc',{recursive:true});fs.cpSync('index.html','public/index.html');fs.cpSync('web/dist','public/arc',{recursive:true})\""
   },
   "dependencies": {
     "react": "^19.0.0",
