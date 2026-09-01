@@ -1,5 +1,7 @@
 # ARC — AHPE AI社員 統括ダッシュボード
 
+> **DD（Date × Decoration）デモアプリは [`dd/`](./dd/README.md) にあります**（Next.jsアプリ。`cd dd && npm install && npm run dev` で起動）。
+
 AI社員10名（現実コーチ／私コーチ／ニュース担当／つながり構築担当／LinkedIn投稿レビュー／BEFoAF担当／Jarvis／開発担当Tom／種まき担当／コミュニティマネージャー）を統括するダッシュボード。J.A.R.V.I.S.風HUDデザイン（シアン `#4FD8FF`）。
 
 - 左：出退勤札ボード風の社員名簿（モバイルでは上部チップバー）
