@@ -32,6 +32,13 @@ DDは「誰とデートするか」を扱いません。異性検索・スワイ
 
 本番プロダクトではないため、バックエンド・認証・決済・地図連携等は意図的に省略しています。
 
+## Hosted demo (Vercel)
+
+- ブランチプレビュー: https://dd-demo-git-claude-dd-demo-app-m5b9rr-ahpe.vercel.app
+- 本番URL（mainマージ後に有効）: https://dd-demo-ahpe.vercel.app
+
+Vercelプロジェクト `dd-demo`（Root Directory: `dd`）がこのリポジトリに連携されており、プッシュごとに自動デプロイされます。
+
 ## Setup / Run / Build / Test
 
 Node.js 20+ / npm を想定しています。
