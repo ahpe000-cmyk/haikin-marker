@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+:root {
+  /* DD design tokens — neutral base + 1 accent (used sparingly) */
+  --dd-bg: #faf9f7;
+  --dd-surface: #ffffff;
+  --dd-ink: #1a1a1a;
+  --dd-charcoal: #3d3d3d;
+  --dd-gray: #737373;
+  --dd-line: #e7e5e1;
+  --dd-accent: #d1491f;
+  --dd-accent-soft: #fbeee8;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--dd-bg);
+  color: var(--dd-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans",
+    "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Segoe UI", Meiryo, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 横スクロール事故防止 */
+html,
+body {
+  overflow-x: hidden;
+}
+
+@keyframes dd-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dd-toast-in {
+  animation: dd-toast-in 0.2s ease-out;
+}
+
+@keyframes dd-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dd-fade-in {
+  animation: dd-fade-in 0.25s ease-out;
+}
+
+@keyframes dd-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.dd-pop {
+  animation: dd-pop 0.25s ease-out;
+}
+
+/* 横スクロール行のスクロールバーを控えめに */
+.dd-hscroll {
+  scrollbar-width: none;
+}
+.dd-hscroll::-webkit-scrollbar {
+  display: none;
+}
