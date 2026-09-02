@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  background: #efeeea;
+}
+
+body {
+  color: #1a1a1c;
+  background: #efeeea;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hide scrollbars on horizontal chip rows while keeping scrollability */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Visible focus for keyboard users */
+:focus-visible {
+  outline: 2px solid #c2410c;
+  outline-offset: 2px;
+}
+
+/* Carousel snap */
+.snap-carousel {
+  scroll-snap-type: x mandatory;
+}
+.snap-carousel > * {
+  scroll-snap-align: center;
+}
