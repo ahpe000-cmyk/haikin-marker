@@ -27,10 +27,7 @@
 - 状態: **後回しが決定（2026-09-05・花園）**。他のすべての開発が終わった後に着手する。
   それまで PR #11（LINE連携・毎朝通知）は実装しない
 
-## 4. /admin/quiz（問題プール管理画面）のアクセス方法【判断待ち・新規】
-- CLAUDE.md §10 に `/admin/quiz`（管理者用）があるが、users の role は
-  'senior' | 'watcher' のみで「管理者」の定義がない
-- 選択肢A: 管理はSupabaseの管理画面（Table Editor）で行い、アプリ内の /admin/quiz は作らない
-- 選択肢B: watcher（花園）に管理画面も見せる（roleの意味が広がる）
-- **Tomの推奨: A**（増やさない原則。問題の承認・無効化は頻度が低く、Table Editorで足りる）
-- 決定まで /admin/quiz は実装しない
+## 4. /admin/quiz（問題プール管理画面）のアクセス方法【決定済み 2026-09-05】
+- 状態: **決定済み（2026-09-05・花園、Tomの推奨どおり）→ 作らない（選択肢A）**。
+  問題の承認・無効化は Supabase の Table Editor（quiz_questions の approved 列）で行う。
+  詳細は `docs/DECISIONS.md`
