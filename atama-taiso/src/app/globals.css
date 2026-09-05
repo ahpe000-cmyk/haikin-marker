@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+/* 設計の最上位原則: 文字は最小18px、ボタン高さ56px以上（CLAUDE.md §1） */
+html {
+  font-size: 18px;
+}
+html[data-moji="ookii"] {
+  font-size: 21px;
+}
+html[data-moji="tokudai"] {
+  font-size: 24px;
+}
+
+body {
+  background-color: #fff7e8;
+  color: #3a2e20;
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic",
+    "Noto Sans JP", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 56px;
+  padding: 0.75rem 1.25rem;
+  border-radius: 1rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.4;
+  cursor: pointer;
+  text-align: center;
+  border: none;
+}
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background-color: #f57c1f;
+  color: #ffffff;
+}
+.btn-secondary {
+  background-color: #ffffff;
+  color: #3a2e20;
+  border: 3px solid #e5d5b8;
+}
+.btn-quiet {
+  background-color: transparent;
+  color: #8a6d3b;
+  text-decoration: underline;
+  font-weight: 500;
+}
+.btn-choice {
+  background-color: #ffffff;
+  color: #3a2e20;
+  border: 3px solid #e5d5b8;
+  justify-content: flex-start;
+}
+.btn-choice-correct {
+  background-color: #e8f6e3;
+  border-color: #4c9a3d;
+}
+.btn-choice-wrong {
+  background-color: #fdeaea;
+  border-color: #cf6a6a;
+}
+
+.card {
+  background-color: #ffffff;
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(120, 90, 40, 0.08);
+}
+
+.input-big {
+  width: 100%;
+  min-height: 56px;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  border: 3px solid #e5d5b8;
+  background-color: #ffffff;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+.input-big:focus {
+  outline: 3px solid #f57c1f;
+  border-color: #f57c1f;
+}
