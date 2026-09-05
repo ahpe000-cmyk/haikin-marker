@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import SetupPending from "@/components/SetupPending";
 import DiaryForm from "@/components/DiaryForm";
 import {
@@ -21,7 +22,8 @@ function monthAgo(ymd: string): string {
 export default async function DiaryPage() {
   if (!isSupabaseConfigured()) return <SetupPending />;
   const user = await getCurrentAppUser();
-  if (!user) return <SetupPending />;
+  if (!user) redirect("/hajimeru");
+  if (user.role === "watcher") redirect("/watch");
 
   const supabase = await createClient();
   const today = todayJst();

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import SetupPending from "@/components/SetupPending";
 import {
   createClient,
@@ -30,7 +31,8 @@ function monthShift(ym: string, diff: number): string {
 export default async function HistoryPage({ searchParams }: Props) {
   if (!isSupabaseConfigured()) return <SetupPending />;
   const user = await getCurrentAppUser();
-  if (!user) return <SetupPending />;
+  if (!user) redirect("/hajimeru");
+  if (user.role === "watcher") redirect("/watch");
 
   const today = todayJst();
   const sp = await searchParams;

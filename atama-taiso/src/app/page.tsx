@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import SetupPending from "@/components/SetupPending";
 import {
   createClient,
@@ -12,7 +13,8 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   if (!isSupabaseConfigured()) return <SetupPending />;
   const user = await getCurrentAppUser();
-  if (!user) return <SetupPending />;
+  if (!user) redirect("/hajimeru");
+  if (user.role === "watcher") redirect("/watch");
 
   const today = todayJst();
   // 1日あいたら0に戻して見せる（受け入れ基準4）

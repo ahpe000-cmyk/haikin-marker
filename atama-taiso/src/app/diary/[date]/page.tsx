@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import SetupPending from "@/components/SetupPending";
 import {
   createClient,
@@ -27,7 +28,8 @@ export default async function DiaryDatePage({ params }: Props) {
 
   if (!isSupabaseConfigured()) return <SetupPending />;
   const user = await getCurrentAppUser();
-  if (!user) return <SetupPending />;
+  if (!user) redirect("/hajimeru");
+  if (user.role === "watcher") redirect("/watch");
 
   const supabase = await createClient();
   const { data } = await supabase

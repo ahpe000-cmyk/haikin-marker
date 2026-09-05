@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import SetupPending from "@/components/SetupPending";
 import MojiSize from "@/components/MojiSize";
 import { getCurrentAppUser, isSupabaseConfigured } from "@/lib/supabase/server";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   if (!isSupabaseConfigured()) return <SetupPending />;
   const user = await getCurrentAppUser();
-  if (!user) return <SetupPending />;
+  if (!user) redirect("/hajimeru");
 
   const shareOn = user.share_with_watcher;
 
