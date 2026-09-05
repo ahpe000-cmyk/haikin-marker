@@ -1,0 +1,24 @@
+{
+  "name": "頭の体操",
+  "short_name": "頭の体操",
+  "description": "毎朝5分の頭の体操と、きょうの記録",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF7E8",
+  "theme_color": "#F57C1F",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
