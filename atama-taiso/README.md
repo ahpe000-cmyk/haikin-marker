@@ -2,29 +2,23 @@
 
 仕様はリポジトリルートの `CLAUDE.md` を参照。判断待ちは `docs/PENDING.md`、決定の記録は `docs/DECISIONS.md`。
 
-## セットアップ（花園向け・初回のみ）
+## セットアップ状況
 
-1. **Supabase プロジェクトを作成**し、以下を行う
-   - SQL Editor で `supabase/migrations/` の4ファイルを番号順に実行
-     （スキーマ → RLS → 利用者3名 → 日記の見守りポリシー）
-   - Authentication → Sign In / Up で **Anonymous Sign-ins を有効化**
-     （あいことばログインが匿名認証を使うため）
-2. **環境変数を設定**（Vercel の Project Settings → Environment Variables。
-   ローカルは `atama-taiso/.env.local`）
-   - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`（サーバー専用）
-   - `ANTHROPIC_API_KEY`（食事写真の判定用・サーバー専用）
-   - `APP_PASSCODE`（4桁のあいことば。**値はチャット・Notion・リポジトリに書かない**）
-3. **クイズを投入**
-   ```bash
-   cd atama-taiso
-   npm install
-   npm run seed:quiz -- data/quiz_sample.csv   # まずは開発用ダミー20問
-   ```
-   本番問題は `scripts/generate_quiz_prompt.md` の手順で `data/quiz_draft.csv` を
-   作って確認後、同じコマンドで投入する
-4. **Vercel** はプロジェクト設定で Root Directory を `atama-taiso` にする。
-   **デプロイはプレビューのみ**（`vercel --prod` は使わない。CLAUDE.md 掟1）
+初期セットアップ（Supabaseプロジェクト作成・マイグレーション・利用者3名の
+認証アカウント・ダミー20問投入・Vercelプレビューデプロイ）は **Tomが実施済み**。
+残っている花園の作業は次の2つだけ。
+
+1. **ANTHROPIC_API_KEY の設定**（食事写真のAI判定用・任意）
+   - Vercel の Project Settings → Environment Variables に `ANTHROPIC_API_KEY` を追加
+   - 未設定でもアプリは動く（写真判定だけ「何を食べましたか?」の手入力になる）
+2. **本番クイズの投入**（ダミー20問はTomが投入済み）
+   - `scripts/generate_quiz_prompt.md` の手順で `data/quiz_draft.csv` を作成・確認
+   - `npm run seed:quiz -- data/quiz_draft.csv` で投入
+     （要 `.env.local` に `NEXT_PUBLIC_SUPABASE_URL` と `SUPABASE_SERVICE_ROLE_KEY`）
+
+問題の承認・無効化は Supabase の Table Editor で `quiz_questions.approved` を切り替える。
+あいことばの変更は `supabase/setup/create_auth_users.sql` 末尾のSQLコメント参照。
+**デプロイはプレビューのみ**（`vercel --prod` は使わない。CLAUDE.md 掟1）
 
 ## 開発
 
